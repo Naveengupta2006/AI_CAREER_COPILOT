@@ -1,0 +1,19 @@
+venv 
+
+all project same packages 
+
+A > Flask 2
+B flask 3
+
+with venv
+
+flask = web Application
+sqlalchemy = database handling
+pymysql = tybd
+openai = api connect
+pypdf = resune upload
+python doc = any 
+
+1. step - setup
+2. databse connection
+3. 
