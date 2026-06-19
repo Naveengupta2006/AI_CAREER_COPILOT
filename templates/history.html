@@ -2,42 +2,49 @@
 
 {% block content %}
 <h2>Your History</h2>
-{% for r in reports %}
-<div class="card">
-    <p><strong>Resume Analysis</strong></p>
-    <p>{{ <r class="analysis" :150=""></r> }}</p>
 
-    <hr>
+{% if reports %}
+    {% for r in reports %}
+    <div class="card">
+        <p><strong>Resume Analysis</strong></p>
+        <p>{{ r.resume_text[:150] }}...</p>
 
-        <h3> Skills</h3>
-    <ul>
-        {% for skill in analysis.skills("Skills", []) %}
-        <li>{{ skill }}</li>
-        {% endfor %}
+        <hr>
+
+        <h3>Skills</h3>
+        <ul>
+            {% for skill in r.analysis.get("skills", []) %}
+            <li>{{ skill }}</li>
+            {% endfor %}
         </ul>
-        
+
         <h3>Missing Skills</h3>
         <ul>
-            {% for skill in analysis.skills("missing_skills", []) %}
+            {% for skill in r.analysis.get("missing_skills", []) %}
             <li>{{ skill }}</li>
             {% endfor %}
         </ul>
-        <h3>Roadmap </h3>
+
+        <h3>Roadmap</h3>
         <ul>
-            {% for skill in analysis.skills("roadmap", []) %}
-            <li>{{ skill }}</li>
+            {% for step in r.analysis.get("roadmap", []) %}
+            <li>{{ step }}</li>
             {% endfor %}
         </ul>
-        <h3>Interview Questions </h3>
+
+        <h3>Interview Questions</h3>
         <ul>
-            {% for skill in analysis.skills("interview_questions", []) %}
-            <li>{{ skill }}</li>
+            {% for question in r.analysis.get("interview_questions", []) %}
+            <li>{{ question }}</li>
             {% endfor %}
         </ul>
     </div>
+    {% endfor %}
 
-</div>
-{% endfor %}
+{% else %}
+    <div class="card">
+        <p>No analyses yet. <a href="/">Analyze your first resume →</a></p>
+    </div>
+{% endif %}
 
-
-{%endblock %}
+{% endblock %}

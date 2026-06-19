@@ -3,20 +3,19 @@
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <h2>create account</h2>
+        <h2>Create Account</h2>
         <p class="sub-text">
-            Start your AI Career Jourey
+            Start your AI Career Journey
         </p>
-        <form method="POST" >
-            <input type="email" name="email" placeholder="Enter Your Email" required>
-            <input type="password" name="password" placeholder="create a password" required>
-            <p class="sub">use at least 6 characters</p>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="name" placeholder="Your full name" required>
+            <input type="email" name="email" placeholder="Enter your email" required>
+            <input type="password" name="password" placeholder="Create a password" minlength="6" required>
+            <p class="sub">Use at least 6 characters</p>
             <button type="submit">Sign Up</button>
         </form>
-        <p class="switch-auth">  
-            Already have an account? <a href="/login">Log in here</a>.++++++++++
-        </p>
-        <p>
+        <p class="switch-auth">
             Already have an account? <a href="/login">Log in here</a>.
         </p>
     </div>
