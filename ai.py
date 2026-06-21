@@ -44,7 +44,7 @@ Rules:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="meta/llama-3.1-8b-instruct",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": user_message}
