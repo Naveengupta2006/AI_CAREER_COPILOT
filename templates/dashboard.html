@@ -5,14 +5,16 @@
 <h2>Welcome, {{ user }}!</h2>
 
 <div class="card">
-    <h3>Resume Analyzer</h3>
+    <h3>Resume Upload &amp; Analysis</h3>
 
     <form method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <textarea name="resume_text" placeholder="Paste your resume text here..."></textarea>
+        <label>Paste your resume text:
+            <textarea name="resume_text" placeholder="Paste your resume text here..."></textarea>
+        </label>
 
-        <label>Or upload a file:
+        <label>Or upload a file (PDF / DOCX):
             <input type="file" name="file" accept=".pdf,.doc,.docx,.txt">
         </label>
 
@@ -22,6 +24,14 @@
             placeholder="e.g. Backend Engineer, Data Scientist, Product Manager"
             required
         >
+
+        <label>Or paste a job posting URL (auto-fetches the description):
+            <input type="url" name="job_url" placeholder="https://company.com/careers/job-id">
+        </label>
+
+        <label>Job description (optional — paste manually instead of a URL):
+            <textarea name="job_description" placeholder="Paste the job posting here..."></textarea>
+        </label>
 
         <button type="submit">Analyze Resume</button>
     </form>
@@ -34,26 +44,79 @@
     <p style="color: red;">{{ analysis.get("error") }}</p>
     {% endif %}
 
-    <h3>Skills</h3>
-    <ul>
+    {% if analysis.get("ats_score") is not none %}
+    <div class="score-row">
+        <div class="score-circle
+            {% if analysis.ats_score >= 75 %}score-good
+            {% elif analysis.ats_score >= 50 %}score-mid
+            {% else %}score-low{% endif %}">
+            {{ analysis.ats_score }}
+        </div>
+        <div class="score-label">ATS Score<br><span class="score-sub">out of 100</span></div>
+    </div>
+    {% endif %}
+
+    <h3 class="section-skills">Skills</h3>
+    <ul class="list-skills">
         {% for skill in analysis.get("skills", []) %}
         <li>{{ skill }}</li>
         {% endfor %}
     </ul>
 
-    <h3>Missing Skills</h3>
-    <ul>
+    <h3 class="section-missing">Missing Skills</h3>
+    <ul class="list-missing">
         {% for skill in analysis.get("missing_skills", []) %}
         <li>{{ skill }}</li>
         {% endfor %}
     </ul>
 
-    <h3>Roadmap</h3>
-    <ol>
+    {% if analysis.get("resume_mistakes") %}
+    <h3 class="section-mistakes">Resume Mistakes</h3>
+    <ul class="list-mistakes">
+        {% for mistake in analysis.get("resume_mistakes", []) %}
+        <li>{{ mistake }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if analysis.get("improvement_suggestions") %}
+    <h3 class="section-improvements">Improvement Suggestions</h3>
+    <ul class="list-improvements">
+        {% for tip in analysis.get("improvement_suggestions", []) %}
+        <li>{{ tip }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if analysis.get("project_recommendations") %}
+    <h3 class="section-projects">Project Recommendations</h3>
+    <div class="project-grid">
+        {% for project in analysis.get("project_recommendations", []) %}
+        <div class="project-card difficulty-{{ project.difficulty | lower }}">
+            <div class="project-head">
+                <span class="project-title">{{ project.title }}</span>
+                <span class="diff-badge diff-{{ project.difficulty | lower }}">{{ project.difficulty }}</span>
+            </div>
+            <p class="project-desc">{{ project.description }}</p>
+            <div class="chip-row">
+                {% for tech in project.tech_stack %}
+                <span class="chip chip-tech">{{ tech }}</span>
+                {% endfor %}
+            </div>
+            {% if project.addresses_gap %}
+            <p class="project-gap">Addresses: {{ project.addresses_gap }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3 class="section-roadmap">Roadmap</h3>
+    <ul class="list-roadmap">
         {% for step in analysis.get("roadmap", []) %}
         <li>
             {% if step is mapping %}
-                <strong>{{ step.get("step", step.get("title", "")) }}</strong>
+                <strong>{{ step.get("step") or step.get("title") or step }}</strong>
                 {% if step.get("resource") %}
                     &nbsp;— 📚 <em>{{ step.get("resource") }}</em>
                 {% endif %}
@@ -65,14 +128,14 @@
             {% endif %}
         </li>
         {% endfor %}
-    </ol>
+    </ul>
 
-    <h3>Interview Questions</h3>
-    <ul>
+    <h3 class="section-interview">Interview Questions</h3>
+    <ul class="list-interview">
         {% for question in analysis.get("interview_questions", []) %}
         <li>
             {% if question is mapping %}
-                {{ question.get("question", question) }}
+                {{ question.get("question") or question.get("text") or question }}
             {% else %}
                 {{ question }}
             {% endif %}
@@ -80,8 +143,38 @@
         {% endfor %}
     </ul>
 
+    {% if analysis.get("jd_match") %}
+    <h3>Resume vs Job Description Match</h3>
+    <div class="score-row">
+        <div class="score-circle
+            {% if analysis.jd_match.score >= 75 %}score-good
+            {% elif analysis.jd_match.score >= 50 %}score-mid
+            {% else %}score-low{% endif %}">
+            {{ analysis.jd_match.score }}
+        </div>
+        <div class="score-label">Match Score<br><span class="score-sub">vs job description</span></div>
+    </div>
+
+    {% if analysis.jd_match.matched_keywords %}
+    <p class="sub" style="margin-top:14px">Matched keywords</p>
+    <div class="chip-row">
+        {% for kw in analysis.jd_match.matched_keywords %}
+        <span class="chip chip-match">{{ kw }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analysis.jd_match.missing_keywords %}
+    <p class="sub" style="margin-top:10px">Missing keywords</p>
+    <div class="chip-row">
+        {% for kw in analysis.jd_match.missing_keywords %}
+        <span class="chip chip-missing">{{ kw }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
 </div>
 {% endif %}
 
 {% endblock %}
-

@@ -11,6 +11,7 @@ import json
 import os
 import models
 from ai import analyze_resume
+from scraper import scrape_job_url
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -21,9 +22,7 @@ Base.metadata.create_all(bind=engine)
 # ── Home ──────────────────────────────────────────────────────────────────────
 @app.route("/")
 def home():
-    if "user" in session:
-        return redirect("/dashboard")
-    return redirect("/login")
+    return render_template("index.html", user=session.get("user"))
 
 # ── Signup ────────────────────────────────────────────────────────────────────
 @app.route("/signup", methods=["GET", "POST"])
@@ -73,11 +72,6 @@ def login():
     return render_template("login.html")
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
-@app.route("/dashboar")
-def dashboar():
-    return redirect("/dashboard")
-
-
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
@@ -86,9 +80,19 @@ def dashboard():
     analysis = None
 
     if request.method == "POST":
-        user_goal   = request.form.get("role")
-        resume_text = request.form.get("resume_text")
-        file        = request.files.get("file")
+        user_goal       = request.form.get("role")
+        resume_text     = request.form.get("resume_text")
+        job_description = request.form.get("job_description")
+        job_url         = request.form.get("job_url")
+        file            = request.files.get("file")
+
+        # If a URL was given and no JD was pasted manually, scrape it
+        if job_url and not job_description:
+            scrape_result = scrape_job_url(job_url)
+            if scrape_result["error"]:
+                analysis = {"error": f"Job URL error: {scrape_result['error']}"}
+            else:
+                job_description = scrape_result["text"]
 
         # File overrides pasted text
         if file and file.filename != "":
@@ -116,7 +120,7 @@ def dashboard():
         # Only analyze if no file error occurred
         if analysis is None and resume_text and user_goal:
             try:
-                analysis = analyze_resume(resume_text, user_goal)
+                analysis = analyze_resume(resume_text, user_goal, job_description)
 
                 db = SessionLocal()
                 try:

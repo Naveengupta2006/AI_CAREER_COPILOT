@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="landing-container">
+    
+    <!-- ── Hero Section ── -->
+    <section class="hero-section">
+        <span class="hero-tagline">✨ AI-Powered Career Companion</span>
+        <h1 class="hero-title">
+            Land Your Dream Job,<br>
+            <span class="text-gradient">Faster Than Ever</span>
+        </h1>
+        <p class="hero-desc">
+            From scanning to tailoring to interview prep — we've automated the entire job application pipeline.
+        </p>
+        <div class="hero-ctas">
+            {% if user %}
+                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+            {% else %}
+                <a href="/signup" class="btn btn-primary">Get Started — It's Free</a>
+                <a href="/login" class="btn btn-secondary">Log In</a>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- ── Features Grid ── -->
+    <section class="landing-section">
+        <span class="landing-section-tagline">Everything You Need</span>
+        <h2 class="landing-section-title">Your Unfair Advantage in the Job Market</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-purple">
+                    <span class="emoji">🔍</span>
+                </div>
+                <h3>Smart Job Scanning</h3>
+                <p>Paste any job URL from LinkedIn, Workday, or Greenhouse — our AI extracts every detail in seconds.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-green">
+                    <span class="emoji">🎯</span>
+                </div>
+                <h3>ATS Match Scoring</h3>
+                <p>Get an instant score showing how well your resume matches the job. See exactly what's missing.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-orange">
+                    <span class="emoji">📝</span>
+                </div>
+                <h3>One-Click Resume Tailoring</h3>
+                <p>AI rephrases your resume to better match each job description — using only the skills and experience you already have.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-pink">
+                    <span class="emoji">🎓</span>
+                </div>
+                <h3>Interview Prep Lab</h3>
+                <p>Get personalized study topics, company insights, and interview strategies for every application.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── How It Works ── -->
+    <section class="landing-section">
+        <span class="landing-section-tagline">Simple Process</span>
+        <h2 class="landing-section-title">How It Works</h2>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h3>Paste a Job URL</h3>
+                <p>Drop any job link and we handle the rest.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h3>Review Your Match</h3>
+                <p>See your ATS score and skill gap analysis.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h3>Tailor Your Resume</h3>
+                <p>AI rephrases your resume to better align with the role — in one click.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-num">04</div>
+                <h3>Ace the Interview</h3>
+                <p>Study curated topics and prep intelligence.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Testimonials ── -->
+    <section class="landing-section">
+        <span class="landing-section-tagline">Loved by Job Seekers</span>
+        <h2 class="landing-section-title">What Our Users Say</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="quote">"Career Copilot took my resume from a 45 to a 97 ATS score. I got 3 interview calls in the first week!"</p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="quote">"The interview prep lab is a game-changer. I walked into my interview knowing exactly what to expect."</p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="quote">"I used to spend hours tailoring each resume. Now it takes 30 seconds. Worth every credit."</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

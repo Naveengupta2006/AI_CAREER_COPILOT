@@ -11,31 +11,72 @@
 
         <hr>
 
-        <h3>Skills</h3>
-        <ul>
+        <h3 class="section-skills">Skills</h3>
+        <ul class="list-skills">
             {% for skill in r.analysis.get("skills", []) %}
             <li>{{ skill }}</li>
             {% endfor %}
         </ul>
 
-        <h3>Missing Skills</h3>
-        <ul>
+        <h3 class="section-missing">Missing Skills</h3>
+        <ul class="list-missing">
             {% for skill in r.analysis.get("missing_skills", []) %}
             <li>{{ skill }}</li>
             {% endfor %}
         </ul>
 
-        <h3>Roadmap</h3>
-        <ul>
+        {% if r.analysis.get("project_recommendations") %}
+        <h3 class="section-projects">Project Recommendations</h3>
+        <div class="project-grid">
+            {% for project in r.analysis.get("project_recommendations", []) %}
+            <div class="project-card difficulty-{{ project.get('difficulty', '').lower() }}">
+                <div class="project-header">
+                    <span class="project-title">{{ project.get("title") }}</span>
+                    <span class="badge badge-difficulty">{{ project.get("difficulty") }}</span>
+                </div>
+                <p class="project-desc">{{ project.get("description") }}</p>
+                <div class="project-meta">
+                    <span class="badge badge-gap">🎯 Targets: {{ project.get("addresses_gap") }}</span>
+                    <div class="tech-stack-row">
+                        {% for tech in project.get("tech_stack", []) %}
+                        <span class="chip-tech">{{ tech }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <h3 class="section-roadmap">Roadmap</h3>
+        <ul class="list-roadmap">
             {% for step in r.analysis.get("roadmap", []) %}
-            <li>{{ step }}</li>
+            <li>
+                {% if step is mapping %}
+                    <strong>{{ step.get("step") or step.get("title") or step }}</strong>
+                    {% if step.get("resource") %}
+                        &nbsp;— 📚 <em>{{ step.get("resource") }}</em>
+                    {% endif %}
+                    {% if step.get("timeframe") %}
+                        &nbsp;⏱ <span style="opacity:0.7;">{{ step.get("timeframe") }}</span>
+                    {% endif %}
+                {% else %}
+                    {{ step }}
+                {% endif %}
+            </li>
             {% endfor %}
         </ul>
 
-        <h3>Interview Questions</h3>
-        <ul>
+        <h3 class="section-interview">Interview Questions</h3>
+        <ul class="list-interview">
             {% for question in r.analysis.get("interview_questions", []) %}
-            <li>{{ question }}</li>
+            <li>
+                {% if question is mapping %}
+                    {{ question.get("question") or question.get("text") or question }}
+                {% else %}
+                    {{ question }}
+                {% endif %}
+            </li>
             {% endfor %}
         </ul>
     </div>
