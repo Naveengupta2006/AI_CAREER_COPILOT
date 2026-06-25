@@ -1,91 +1,162 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Your History</h2>
+<div class="history-container">
+    <h2>Your History</h2>
+    
+    <!-- Navigation Tabs -->
+    <div style="margin-bottom: 30px; border-bottom: 1px solid var(--border); display: flex; gap: 24px; padding-bottom: 12px;">
+        <span class="tab-btn active-tab" id="tab-interviews" onclick="switchTab('interviews')" style="font-size: 15px; font-weight: 700; cursor: pointer; color: var(--violet); position: relative; padding-bottom: 12px;">
+            Mock Interview Reports
+        </span>
+        <span class="tab-btn" id="tab-resumes" onclick="switchTab('resumes')" style="font-size: 15px; font-weight: 700; cursor: pointer; color: var(--text-muted); position: relative; padding-bottom: 12px;">
+            Resume Analyses
+        </span>
+    </div>
 
-{% if reports %}
-    {% for r in reports %}
-    <div class="card">
-        <p><strong>Resume Analysis</strong></p>
-        <p>{{ r.resume_text[:150] }}...</p>
-
-        <hr>
-
-        <h3 class="section-skills">Skills</h3>
-        <ul class="list-skills">
-            {% for skill in r.analysis.get("skills", []) %}
-            <li>{{ skill }}</li>
-            {% endfor %}
-        </ul>
-
-        <h3 class="section-missing">Missing Skills</h3>
-        <ul class="list-missing">
-            {% for skill in r.analysis.get("missing_skills", []) %}
-            <li>{{ skill }}</li>
-            {% endfor %}
-        </ul>
-
-        {% if r.analysis.get("project_recommendations") %}
-        <h3 class="section-projects">Project Recommendations</h3>
-        <div class="project-grid">
-            {% for project in r.analysis.get("project_recommendations", []) %}
-            <div class="project-card difficulty-{{ project.get('difficulty', '').lower() }}">
-                <div class="project-header">
-                    <span class="project-title">{{ project.get("title") }}</span>
-                    <span class="badge badge-difficulty">{{ project.get("difficulty") }}</span>
-                </div>
-                <p class="project-desc">{{ project.get("description") }}</p>
-                <div class="project-meta">
-                    <span class="badge badge-gap">🎯 Targets: {{ project.get("addresses_gap") }}</span>
-                    <div class="tech-stack-row">
-                        {% for tech in project.get("tech_stack", []) %}
-                        <span class="chip-tech">{{ tech }}</span>
-                        {% endfor %}
+    <!-- Mock Interview Section -->
+    <div id="section-interviews" style="display: flex; flex-direction: column; gap: 16px;">
+        {% if interview_reports %}
+            {% for r in interview_reports %}
+            <div class="card" style="padding: 24px 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h4 style="font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px;">{{ r.target_role }}</h4>
+                        <p class="sub-text" style="margin-bottom: 0;">Date: {{ r.created_at }}</p>
                     </div>
+                    <div class="score-circle {% if r.overall_score >= 75 %}score-good{% elif r.overall_score >= 50 %}score-mid{% else %}score-low{% endif %}" style="width: 46px; height: 46px; font-size: 15px; border-width: 1px;">
+                        {{ r.overall_score }}
+                    </div>
+                </div>
+
+                <hr>
+
+                <p style="font-size: 13.5px; line-height: 1.6; color: var(--text-muted); margin-bottom: 15px;">
+                    {{ r.summary }}
+                </p>
+
+                <div style="display: flex; justify-content: flex-end;">
+                    <a href="/interview/report/{{ r.session_id }}" class="btn btn-secondary btn-nav" style="font-size: 12.5px; padding: 6px 16px;">
+                        View Full Feedback Report &rarr;
+                    </a>
                 </div>
             </div>
             {% endfor %}
-        </div>
+        {% else %}
+            <div class="card" style="text-align: center; padding: 40px;">
+                <p style="color: var(--text-muted); margin-bottom: 15px;">No mock interview session reports found.</p>
+                <a href="/interview" class="btn btn-primary" style="font-size: 13.5px; padding: 8px 20px;">Start Mock Interview Lab</a>
+            </div>
         {% endif %}
-
-        <h3 class="section-roadmap">Roadmap</h3>
-        <ul class="list-roadmap">
-            {% for step in r.analysis.get("roadmap", []) %}
-            <li>
-                {% if step is mapping %}
-                    <strong>{{ step.get("step") or step.get("title") or step }}</strong>
-                    {% if step.get("resource") %}
-                        &nbsp;— 📚 <em>{{ step.get("resource") }}</em>
-                    {% endif %}
-                    {% if step.get("timeframe") %}
-                        &nbsp;⏱ <span style="opacity:0.7;">{{ step.get("timeframe") }}</span>
-                    {% endif %}
-                {% else %}
-                    {{ step }}
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-
-        <h3 class="section-interview">Interview Questions</h3>
-        <ul class="list-interview">
-            {% for question in r.analysis.get("interview_questions", []) %}
-            <li>
-                {% if question is mapping %}
-                    {{ question.get("question") or question.get("text") or question }}
-                {% else %}
-                    {{ question }}
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
     </div>
-    {% endfor %}
 
-{% else %}
-    <div class="card">
-        <p>No analyses yet. <a href="/">Analyze your first resume →</a></p>
+    <!-- Resume Analyses Section -->
+    <div id="section-resumes" style="display: none; flex-direction: column; gap: 16px;">
+        {% if reports %}
+            {% for r in reports %}
+            <div class="card">
+                <p><strong>Resume Analysis</strong></p>
+                <p>{{ r.resume_text[:150] }}...</p>
+
+                <hr>
+
+                <h3 class="section-skills">Skills</h3>
+                <ul class="list-skills">
+                    {% for skill in r.analysis.get("skills", []) %}
+                    <li>{{ skill }}</li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="section-missing">Missing Skills</h3>
+                <ul class="list-missing">
+                    {% for skill in r.analysis.get("missing_skills", []) %}
+                    <li>{{ skill }}</li>
+                    {% endfor %}
+                </ul>
+
+                {% if r.analysis.get("project_recommendations") %}
+                <h3 class="section-projects">Project Recommendations</h3>
+                <div class="project-grid">
+                    {% for project in r.analysis.get("project_recommendations", []) %}
+                    <div class="project-card difficulty-{{ project.get('difficulty', '').lower() }}">
+                        <div class="project-header">
+                            <span class="project-title">{{ project.get("title") }}</span>
+                            <span class="badge badge-difficulty">{{ project.get("difficulty") }}</span>
+                        </div>
+                        <p class="project-desc">{{ project.get("description") }}</p>
+                        <div class="project-meta">
+                            <span class="badge badge-gap">🎯 Targets: {{ project.get("addresses_gap") }}</span>
+                            <div class="tech-stack-row">
+                                {% for tech in project.get("tech_stack", []) %}
+                                <span class="chip-tech">{{ tech }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <h3 class="section-roadmap">Roadmap</h3>
+                <ul class="list-roadmap">
+                    {% for step in r.analysis.get("roadmap", []) %}
+                    <li>
+                        {% if step is mapping %}
+                            <strong>{{ step.get("step") or step.get("title") or step }}</strong>
+                            {% if step.get("resource") %}
+                                &nbsp;— 📚 <em>{{ step.get("resource") }}</em>
+                            {% endif %}
+                            {% if step.get("timeframe") %}
+                                &nbsp;⏱ <span style="opacity:0.7;">{{ step.get("timeframe") }}</span>
+                            {% endif %}
+                        {% else %}
+                            {{ step }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="section-interview">Interview Questions</h3>
+                <ul class="list-interview">
+                    {% for question in r.analysis.get("interview_questions", []) %}
+                    <li>
+                        {% if question is mapping %}
+                            {{ question.get("question") or question.get("text") or question }}
+                        {% else %}
+                            {{ question }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+
+        {% else %}
+            <div class="card" style="text-align: center; padding: 40px;">
+                <p>No analyses yet. <a href="/">Analyze your first resume →</a></p>
+            </div>
+        {% endif %}
     </div>
-{% endif %}
+</div>
 
+<script>
+function switchTab(tabName) {
+    const tabInterviews = document.getElementById('tab-interviews');
+    const tabResumes = document.getElementById('tab-resumes');
+    const secInterviews = document.getElementById('section-interviews');
+    const secResumes = document.getElementById('section-resumes');
+
+    if (tabName === 'interviews') {
+        tabInterviews.style.color = 'var(--violet)';
+        tabResumes.style.color = 'var(--text-muted)';
+        secInterviews.style.display = 'flex';
+        secResumes.style.display = 'none';
+    } else {
+        tabInterviews.style.color = 'var(--text-muted)';
+        tabResumes.style.color = 'var(--emerald)';
+        secInterviews.style.display = 'none';
+        secResumes.style.display = 'flex';
+    }
+}
+</script>
 {% endblock %}

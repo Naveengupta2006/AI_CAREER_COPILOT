@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card card" style="max-width: 500px;">
+        <h2>Voice Interview Prep Lab</h2>
+        <p class="sub-text">Upload your resume to generate tailored, resume-specific coding and behavioral questions from GPT-5.</p>
+
+        {% if error %}
+        <p style="color: red;">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label>Target Role:
+                <input 
+                    type="text" 
+                    name="role" 
+                    placeholder="e.g. Senior Frontend Engineer, DevOps Analyst, Backend Developer" 
+                    required
+                >
+            </label>
+
+            <label style="margin-top: 10px;">Upload Resume (PDF only):
+                <input 
+                    type="file" 
+                    name="file" 
+                    accept=".pdf" 
+                    required
+                    style="padding: 10px 0; border: none; background: transparent;"
+                >
+            </label>
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 15px; width: 100%; align-self: stretch;">
+                Generate Tailored Questions
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

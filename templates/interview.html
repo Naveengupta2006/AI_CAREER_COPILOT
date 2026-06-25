@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="interview-container">
+    <div class="interview-header">
+        <h2>Voice Interview Prep Lab</h2>
+        <p class="subtitle">Role: <span class="role-highlight">{{ target_role }}</span></p>
+    </div>
+
+    <!-- Slide Carousel Wrapper -->
+    <div class="interview-carousel">
+        {% for question in questions %}
+        <div class="interview-slide {% if loop.index0 == 0 %}active{% endif %}" id="slide-{{ loop.index0 }}" data-index="{{ loop.index0 }}">
+            <div class="slide-card card">
+                <div class="slide-header">
+                    <span class="badge badge-primary">Question {{ loop.index }} of {{ questions|length }}</span>
+                </div>
+                
+                <h3 class="question-text" id="q-text-{{ loop.index0 }}">{{ question }}</h3>
+
+                <!-- Controls Area -->
+                <div class="recorder-panel">
+                    <div class="engine-toggle-container" style="display: none;">
+                        <span class="toggle-label">ASR Engine:</span>
+                        <div class="toggle-switch">
+                            <input type="radio" id="engine-local-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="local" checked>
+                            <label for="engine-local-{{ loop.index0 }}">Web Speech API (Browser)</label>
+                            
+                            <input type="radio" id="engine-whisper-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="whisper">
+                            <label for="engine-whisper-{{ loop.index0 }}">Whisper NIM (Backend)</label>
+                        </div>
+                    </div>
+
+                    <!-- Waveform visualizer canvas -->
+                    <div class="visualizer-container">
+                        <canvas class="waveform-canvas" id="canvas-{{ loop.index0 }}"></canvas>
+                    </div>
+
+                    <div class="recorder-controls">
+                        <button class="btn btn-record" id="btn-record-{{ loop.index0 }}" onclick="toggleRecording({{ loop.index0 }})">
+                            <span class="record-icon"></span>
+                            <span class="record-text" id="record-text-{{ loop.index0 }}">Start Recording</span>
+                        </button>
+                        <button class="btn btn-secondary" id="btn-reset-{{ loop.index0 }}" onclick="resetSlide({{ loop.index0 }})" style="display:none;">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Transcription display -->
+                <div class="transcript-panel" id="transcript-panel-{{ loop.index0 }}">
+                    <h4>Write your answer or transcribe via speech:</h4>
+                    <textarea class="transcript-textarea" id="transcript-{{ loop.index0 }}" placeholder="Type your answer directly here, or click 'Start Recording' above to transcribe your speech."></textarea>
+                    
+                    <div class="submit-action">
+                        <button class="btn btn-primary btn-submit" id="btn-submit-{{ loop.index0 }}" onclick="submitAnswer({{ loop.index0 }})">
+                            Submit Answer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-panel" id="loading-{{ loop.index0 }}" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>GPT-5 Interviewer is evaluating your response...</p>
+                </div>
+
+                <!-- Feedback Display -->
+                <div class="feedback-panel" id="feedback-{{ loop.index0 }}" style="display: none;">
+                    <hr>
+                    <div class="feedback-header">
+                        <h3>Evaluation Results</h3>
+                        <div class="score-ring-container">
+                            <div class="score-ring" id="feedback-score-ring-{{ loop.index0 }}">
+                                <span class="score-num" id="feedback-score-{{ loop.index0 }}">0</span>
+                                <span class="score-label-small">/ 100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-details">
+                        <div class="feedback-section strong-points-card">
+                            <h4>✨ Strong Points</h4>
+                            <ul class="list-strong" id="feedback-strong-{{ loop.index0 }}"></ul>
+                        </div>
+                        <div class="feedback-section improvements-card">
+                            <h4>🎯 Areas of Improvement</h4>
+                            <ul class="list-improvements" id="feedback-improvements-{{ loop.index0 }}"></ul>
+                        </div>
+                        <div class="feedback-section sample-answer-card">
+                            <h4>💡 Sample Ideal Answer</h4>
+                            <p class="sample-answer-text" id="feedback-sample-{{ loop.index0 }}"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Controls inside the card -->
+                <div class="slide-nav-controls">
+                    <button class="btn btn-nav" onclick="prevSlide()" {% if loop.index0 == 0 %}disabled{% endif %}>
+                        &larr; Previous Question
+                    </button>
+                    <a href="/interview/reset" class="btn btn-nav btn-secondary" style="padding: 8px 18px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center;">
+                        Reset / New Session
+                    </a>
+                    {% if not loop.last %}
+                    <button class="btn btn-nav btn-next-slide" onclick="nextSlide()">
+                        Next Question &rarr;
+                    </button>
+                    {% else %}
+                    <button class="btn btn-nav btn-finish" onclick="finishInterview()">
+                        Finish Interview &check;
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+let currentSlideIndex = 0;
+const totalSlides = {{ questions|length }};
+
+// Recording states
+let mediaRecorder = null;
+let audioChunks = [];
+let audioContext = null;
+let scriptProcessor = null;
+let micStream = null;
+let isRecording = false;
+
+// Web Speech API configurations
+let speechRecognition = null;
+
+function nextSlide() {
+    if (currentSlideIndex < totalSlides - 1) {
+        stopAnyRecording();
+        document.getElementById(`slide-${currentSlideIndex}`).classList.remove('active');
+        currentSlideIndex++;
+        document.getElementById(`slide-${currentSlideIndex}`).classList.add('active');
+    }
+}
+
+function prevSlide() {
+    if (currentSlideIndex > 0) {
+        stopAnyRecording();
+        document.getElementById(`slide-${currentSlideIndex}`).classList.remove('active');
+        currentSlideIndex--;
+        document.getElementById(`slide-${currentSlideIndex}`).classList.add('active');
+    }
+}
+
+function finishInterview() {
+    stopAnyRecording();
+    alert("Congratulations on completing your mock interview practice session!");
+    window.location.href = "/interview/report/{{ session_id }}";
+}
+
+function stopAnyRecording() {
+    if (isRecording) {
+        toggleRecording(currentSlideIndex);
+    }
+}
+
+// ── Web Audio & Waveform Visualization ───────────────────────────────────────────
+function drawWaveform(canvasId, stream) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Create AudioContext if not exists
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = actx.createMediaStreamSource(stream);
+    const analyser = actx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = 80;
+    
+    function draw() {
+        if (!isRecording) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+        requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let barHeight;
+        let x = 0;
+        
+        for(let i = 0; i < bufferLength; i++) {
+            barHeight = dataArray[i] / 2;
+            
+            // Create nice neon cyan to magenta gradient
+            const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+            grad.addColorStop(0, '#06b6d4'); // Cyan
+            grad.addColorStop(1, '#ec4899'); // Pink/Magenta
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+            
+            x += barWidth;
+        }
+    }
+    
+    draw();
+}
+
+// ── Audio Recording & Transcription ──────────────────────────────────────────────
+async function toggleRecording(index) {
+    const btn = document.getElementById(`btn-record-${index}`);
+    const statusText = document.getElementById(`record-text-${index}`);
+    const resetBtn = document.getElementById(`btn-reset-${index}`);
+    const selectedEngine = document.querySelector(`input[name="engine-${index}"]:checked`).value;
+    
+    if (!isRecording) {
+        // Start recording
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            isRecording = true;
+            btn.classList.add('recording');
+            statusText.innerText = "Stop Recording";
+            resetBtn.style.display = "none";
+            
+            // Draw waveform
+            drawWaveform(`canvas-${index}`, micStream);
+            
+            if (selectedEngine === 'local') {
+                // Initialize Web Speech API
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert("Web Speech API is not supported in this browser. Please use Google Chrome/Microsoft Edge or switch to Whisper NIM.");
+                    isRecording = false;
+                    btn.classList.remove('recording');
+                    statusText.innerText = "Start Recording";
+                    return;
+                }
+                
+                speechRecognition = new SpeechRecognition();
+                speechRecognition.continuous = true;
+                speechRecognition.interimResults = true;
+                speechRecognition.lang = 'en-US';
+                
+                const transcriptArea = document.getElementById(`transcript-${index}`);
+                document.getElementById(`transcript-panel-${index}`).style.display = "block";
+                
+                speechRecognition.onresult = (event) => {
+                    let text = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        text += event.results[i][0].transcript;
+                    }
+                    transcriptArea.value = text;
+                };
+                
+                speechRecognition.start();
+            } else {
+                // Backend Whisper - Record audio using MediaRecorder
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(micStream);
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+                mediaRecorder.start();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Microphone permission denied or device not found.");
+        }
+    } else {
+        // Stop recording
+        isRecording = false;
+        btn.classList.remove('recording');
+        statusText.innerText = "Start Recording";
+        resetBtn.style.display = "inline-block";
+        
+        if (selectedEngine === 'local') {
+            if (speechRecognition) {
+                speechRecognition.stop();
+            }
+        } else {
+            // Whisper NIM backend
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.onstop = async () => {
+                    // Send file to API
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'recording.wav');
+                    
+                    document.getElementById(`loading-${index}`).style.display = "block";
+                    document.getElementById(`loading-${index}`).innerHTML = `<div class="spinner"></div><p>Uploading and transcribing audio via Whisper...</p>`;
+                    
+                    try {
+                        const response = await fetch('/api/transcribe', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        
+                        document.getElementById(`loading-${index}`).style.display = "none";
+                        
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            document.getElementById(`transcript-panel-${index}`).style.display = "block";
+                            document.getElementById(`transcript-${index}`).value = data.text;
+                        }
+                    } catch (err) {
+                        document.getElementById(`loading-${index}`).style.display = "none";
+                        console.error(err);
+                        alert("Error connecting to transcription API.");
+                    }
+                };
+            }
+        }
+        
+        // Stop tracks
+        if (micStream) {
+            micStream.getTracks().forEach(track => track.stop());
+        }
+    }
+}
+
+function resetSlide(index) {
+    stopAnyRecording();
+    document.getElementById(`transcript-panel-${index}`).style.display = "block";
+    document.getElementById(`transcript-${index}`).value = "";
+    document.getElementById(`feedback-${index}`).style.display = "none";
+    document.getElementById(`btn-reset-${index}`).style.display = "none";
+}
+
+// ── Evaluation Submission ─────────────────────────────────────────────────────────
+async function submitAnswer(index) {
+    const questionText = document.getElementById(`q-text-${index}`).innerText;
+    const answerText = document.getElementById(`transcript-${index}`).value;
+    
+    if (!answerText.trim()) {
+        alert("Transcript cannot be empty. Please record or type an answer first.");
+        return;
+    }
+    
+    document.getElementById(`transcript-panel-${index}`).style.display = "none";
+    document.getElementById(`loading-${index}`).style.display = "block";
+    document.getElementById(`loading-${index}`).innerHTML = `<div class="spinner"></div><p>GPT-5 Interviewer is evaluating your response...</p>`;
+    
+    try {
+        const response = await fetch('/api/interview/evaluate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                question: questionText,
+                answer: answerText,
+                target_role: "{{ target_role }}"
+            })
+        });
+        const feedback = await response.json();
+        
+        document.getElementById(`loading-${index}`).style.display = "none";
+        
+        if (feedback.error) {
+            alert(feedback.error);
+            document.getElementById(`transcript-panel-${index}`).style.display = "block";
+        } else {
+            // Render results
+            document.getElementById(`feedback-${index}`).style.display = "block";
+            document.getElementById(`feedback-score-${index}`).innerText = feedback.score || 0;
+            
+            // Adjust ring styling based on score
+            const ring = document.getElementById(`feedback-score-ring-${index}`);
+            ring.className = "score-ring";
+            if (feedback.score >= 75) {
+                ring.classList.add('ring-good');
+            } else if (feedback.score >= 50) {
+                ring.classList.add('ring-mid');
+            } else {
+                ring.classList.add('ring-low');
+            }
+            
+            // Render bullet points
+            const strongList = document.getElementById(`feedback-strong-${index}`);
+            strongList.innerHTML = '';
+            (feedback.strong_points || []).forEach(pt => {
+                const li = document.createElement('li');
+                li.innerText = pt;
+                strongList.appendChild(li);
+            });
+            
+            const improvementsList = document.getElementById(`feedback-improvements-${index}`);
+            improvementsList.innerHTML = '';
+            (feedback.improvements || []).forEach(pt => {
+                const li = document.createElement('li');
+                li.innerText = pt;
+                improvementsList.appendChild(li);
+            });
+            
+            document.getElementById(`feedback-sample-${index}`).innerText = feedback.sample_answer || '';
+        }
+    } catch (err) {
+        document.getElementById(`loading-${index}`).style.display = "none";
+        document.getElementById(`transcript-panel-${index}`).style.display = "block";
+        console.error(err);
+        alert("Evaluation request failed.");
+    }
+}
+</script>
+{% endblock %}

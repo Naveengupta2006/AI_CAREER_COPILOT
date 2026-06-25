@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from db import Base
+import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -17,3 +18,26 @@ class Reports(Base):
     goal            = Column(String(255))
     resume_text     = Column(Text)
     analysis_result = Column(Text)
+
+class InterviewEvaluation(Base):
+    __tablename__ = "interview_evaluations"
+
+    id                = Column(Integer, primary_key=True)
+    user_id           = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id        = Column(String(255), nullable=False)
+    question          = Column(Text, nullable=False)
+    answer            = Column(Text, nullable=False)
+    evaluation_result = Column(Text, nullable=False)
+    created_at        = Column(DateTime, default=datetime.datetime.utcnow)
+
+class InterviewSessionReport(Base):
+    __tablename__ = "interview_session_reports"
+
+    id                = Column(Integer, primary_key=True)
+    user_id           = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id        = Column(String(255), unique=True, nullable=False)
+    target_role       = Column(String(255), nullable=False)
+    overall_score     = Column(Integer, nullable=False)
+    summary           = Column(Text, nullable=False)
+    action_plan       = Column(Text, nullable=False)
+    created_at        = Column(DateTime, default=datetime.datetime.utcnow)

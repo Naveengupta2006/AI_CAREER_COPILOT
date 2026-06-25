@@ -16,12 +16,7 @@
             <input type="file" name="file" accept=".pdf,.doc,.docx,.txt">
         </label>
 
-        <input
-            type="text"
-            name="role"
-            placeholder="e.g. Backend Engineer, Data Scientist, Product Manager"
-            required
-        >
+        <input type="text" name="role" placeholder="e.g. Backend Engineer, Data Scientist, Product Manager" required>
 
         <button type="submit">Analyze Resume</button>
     </form>
@@ -60,6 +55,17 @@
         {% for question in analysis.get("interview_questions", []) %}
         <li>{{ question }}</li>
         {% endfor %}
+    </ul>
+
+    <h3>AI Virtual Interview</h3>
+    <ul>
+        {% for question in analysis.get("interview_questions", []) %}
+        <li>{{ question }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Profile </h3>
+    <ul>
+        {% }
     </ul>
 
 </div>

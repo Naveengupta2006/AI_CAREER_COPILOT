@@ -2,6 +2,7 @@ from openai import OpenAI
 import json
 import os
 import logging
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,6 +18,63 @@ client = OpenAI(
 SYSTEM_PROMPT = """You are a senior software engineer, hiring manager, and ATS (Applicant Tracking System) expert.
 Evaluate resumes thoroughly and return ONLY a valid JSON object — no markdown, no explanation.
 Be strict and specific. Never give generic advice — base every point on the actual resume text provided."""
+
+
+def extract_and_parse_json(content, fallback_val=None):
+    """
+    Robustly extracts and parses a JSON object from LLM response content.
+    Tries multiple extraction strategies and strips potential JSON syntax hazards.
+    """
+    if not content:
+        logging.warning("Empty content passed to extract_and_parse_json")
+        return fallback_val
+
+    content_str = content.strip()
+    
+    # Strategy 1: Try parsing the raw content directly
+    try:
+        return json.loads(content_str)
+    except Exception:
+        pass
+
+    # Strategy 2: Extract content from markdown code blocks
+    # Handle both ```json and ```
+    for block_marker in ["```json", "```JSON", "```"]:
+        if block_marker in content_str:
+            try:
+                parts = content_str.split(block_marker)
+                if len(parts) > 1:
+                    inner = parts[1].split("```")[0].strip()
+                    return json.loads(inner)
+            except Exception:
+                pass
+
+    # Strategy 3: Find the first '{' and last '}'
+    start = content_str.find("{")
+    end = content_str.rfind("}") + 1
+    if start != -1 and end > start:
+        json_candidate = content_str[start:end]
+        try:
+            return json.loads(json_candidate)
+        except Exception as e:
+            # Let's try cleaning simple JSON errors:
+            # 1. Trailing commas in lists/objects
+            # 2. Simple single line comments (// ...)
+            try:
+                # Remove single-line comments
+                cleaned = re.sub(r'^\s*//.*$', '', json_candidate, flags=re.MULTILINE)
+                cleaned = re.sub(r'\s*//.*$', '', cleaned)
+                # Remove trailing commas before closing braces/brackets
+                cleaned = re.sub(r',\s*([\]}])', r'\1', cleaned)
+                return json.loads(cleaned)
+            except Exception as clean_err:
+                logging.error(f"Failed to parse cleaned JSON candidate: {clean_err}")
+                logging.error(f"Original parsing error: {e}")
+
+    # Log the failure and the raw content for debugging
+    logging.error("Failed to extract valid JSON from LLM response.")
+    logging.error(f"Raw completion content was:\\n{content}")
+    return fallback_val
 
 
 def analyze_resume(resume_text, user_goal, job_description=None):
@@ -82,17 +140,10 @@ Rules:
         )
         content = response.choices[0].message.content.strip()
 
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0].strip()
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0].strip()
-
-        start = content.find("{")
-        end = content.rfind("}") + 1
-        if start == -1 or end == 0:
+        parsed = extract_and_parse_json(content)
+        if parsed is None:
             raise ValueError("No JSON found in response")
-
-        return json.loads(content[start:end])
+        return parsed
 
     except Exception as e:
         logging.error(f"AI error: {e}")
@@ -107,4 +158,189 @@ Rules:
             "project_recommendations": [],
             "jd_match": None,
             "error": str(e)
+        }
+
+
+def evaluate_interview_answer(question, answer, target_role="Software Engineer"):
+    """
+    Evaluates the interviewee's answer to a given interview question using LLM (GPT-5 Interviewer).
+    """
+    evaluation_prompt = f"""
+    You are GPT-5, a world-class hiring manager and mock interviewer evaluating a candidate for the role: "{target_role}".
+    
+    Evaluate the candidate's response to the following interview question:
+    
+    Question: "{question}"
+    Candidate's Answer: "{answer}"
+    
+    Be constructive, professional, and thorough. 
+    Return ONLY a valid, parseable JSON object matching the format below.
+    Do NOT include any comments (like '//' or '/* ... */') inside the JSON.
+    Do NOT include any trailing commas.
+    Do NOT wrap the JSON in markdown code blocks.
+    
+    Format:
+    {{
+      "score": 85,
+      "strong_points": [
+        "Point 1...",
+        "Point 2..."
+      ],
+      "improvements": [
+        "Improvement 1...",
+        "Improvement 2..."
+      ],
+      "sample_answer": "Model response..."
+    }}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[
+                {"role": "system", "content": "You are a professional mock interviewer and return ONLY JSON."},
+                {"role": "user", "content": evaluation_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=1500,
+        )
+        content = response.choices[0].message.content.strip()
+        
+        parsed = extract_and_parse_json(content)
+        if parsed is None:
+            raise ValueError("No JSON found in response")
+        return parsed
+    except Exception as e:
+        logging.error(f"Evaluation AI error: {e}")
+        return {
+            "score": 0,
+            "strong_points": ["Could not evaluate response due to system error."],
+            "improvements": [str(e)],
+            "sample_answer": "Error retrieving sample answer."
+        }
+
+
+def generate_tailored_questions(resume_text, target_role="Software Engineer"):
+    """
+    Generates 5 tailored interview questions based on the candidate's resume and target role.
+    """
+    resume_text = resume_text[:8000].strip()
+    prompt = f"""
+    You are GPT-5, an elite hiring manager and interviewer for the role: "{target_role}".
+    Based on the candidate's resume below, generate exactly 5 tailored interview questions.
+    Mix technical questions about their projects/skills and behavioral questions about their experience.
+    Make the questions highly specific to the technologies and experience listed in their resume.
+    
+    Candidate Resume:
+    {resume_text}
+    
+    Return ONLY a valid JSON object matching the format below.
+    Do NOT include any markdown code blocks, explanation, or text outside the JSON.
+    
+    Format:
+    {{
+      "questions": [
+        "Question 1...",
+        "Question 2...",
+        "Question 3...",
+        "Question 4...",
+        "Question 5..."
+      ]
+    }}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[
+                {"role": "system", "content": "You are a professional mock interviewer and return ONLY JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.4,
+            max_tokens=1000,
+        )
+        content = response.choices[0].message.content.strip()
+        
+        parsed = extract_and_parse_json(content)
+        if parsed is None:
+            raise ValueError("No JSON found in response")
+        return parsed.get("questions", [])
+    except Exception as e:
+        logging.error(f"Generate questions error: {e}")
+        # Curated fallback questions based on target role
+        return [
+            f"Tell me about a complex project you built as a {target_role} and the technical decisions you made.",
+            f"What specific skills or tools from your resume make you a strong fit for a {target_role} role?",
+            "Describe a challenging bug or issue you encountered in your projects and how you diagnosed it.",
+            "How do you keep up with new technologies and industry developments in your domain?",
+            "Explain a scenario where you had to collaborate under tight deadlines or ambiguous requirements."
+        ]
+
+
+def generate_session_feedback_report(evaluations, target_role="Software Engineer"):
+    """
+    Aggregates all question-answer evaluations of the session and generates
+    overarching feedback (summary and action plan) via GPT-5.
+    """
+    formatted_evals = []
+    for idx, ev in enumerate(evaluations):
+        formatted_evals.append(f"""
+Question {idx+1}: "{ev.get('question')}"
+Candidate's Answer: "{ev.get('answer')}"
+Score: {ev.get('score', 0)}/100
+Strong Points: {ev.get('strong_points', [])}
+Improvements: {ev.get('improvements', [])}
+""")
+    
+    evals_text = "\n---\n".join(formatted_evals)
+    
+    prompt = f"""
+    You are GPT-5, an elite executive coach and technical hiring director.
+    Analyze the candidate's performance across all questions in this mock interview session for the role: "{target_role}".
+    
+    Here is the detailed summary of questions, candidate answers, and individual evaluations:
+    {evals_text}
+    
+    Synthesize this information into a high-level overarching performance feedback report.
+    Return ONLY a valid, parseable JSON object matching the format below.
+    Do NOT include any comments (like '//' or '/* ... */') inside the JSON.
+    Do NOT include any trailing commas.
+    Do NOT wrap the JSON in markdown code blocks.
+    
+    Format:
+    {{
+      "summary": "Overall synthesis review of candidate performance and role readiness.",
+      "action_plan": [
+        "Action plan advice item 1...",
+        "Action plan advice item 2...",
+        "Action plan advice item 3..."
+      ]
+    }}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[
+                {"role": "system", "content": "You are a professional hiring director and return ONLY JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.4,
+            max_tokens=1500,
+        )
+        content = response.choices[0].message.content.strip()
+        
+        parsed = extract_and_parse_json(content)
+        if parsed is None:
+            raise ValueError("No JSON found in response")
+        return parsed
+    except Exception as e:
+        logging.error(f"Generate session feedback report error: {e}")
+        return {
+            "summary": "An overarching synthesis could not be compiled due to a system error. Please review the individual question breakdowns below for detailed feedback.",
+            "action_plan": [
+                "Review individual improvement areas listed for each question.",
+                "Continue practicing with different mock interview questions.",
+                "Consult the recommended ideal model answers for each question."
+            ]
         }
