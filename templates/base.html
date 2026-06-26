@@ -14,8 +14,10 @@
                 <ul>
                     {% if session.get("user") %}
                         <li><a href="/history">History</a></li>
+                        <li><a href="/progress">Progress</a></li>
                         <li><a href="/dashboard">Dashboard</a></li>
                         <li><a href="/interview">Voice Interview</a></li>
+                        <li><a href="/interview/v2">🎤 AI Room</a></li>
                         <li><a href="/logout">Logout</a></li>
                     {% else %}
                         <li><a href="/login">Login</a></li>

@@ -3,8 +3,8 @@
 {% block content %}
 <div class="auth-container">
     <div class="auth-card card" style="max-width: 500px;">
-        <h2>Voice Interview Prep Lab</h2>
-        <p class="sub-text">Upload your resume to generate tailored, resume-specific coding and behavioral questions from GPT-5.</p>
+        <h2>{{ title | default('Voice Interview Prep Lab') }}</h2>
+        <p class="sub-text">Upload your resume to generate tailored, resume-specific coding and behavioral questions from the AI.</p>
 
         {% if error %}
         <p style="color: red;">{{ error }}</p>

@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interview Room — AI Career Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+  /* ── Reset & base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #07070d;
+    --bg-card:   #111118;
+    --bg-panel:  #0d0d14;
+    --border:    rgba(255,255,255,0.07);
+    --violet:    #7c3aed;
+    --violet-lt: #a78bfa;
+    --cyan:      #06b6d4;
+    --emerald:   #10b981;
+    --amber:     #f59e0b;
+    --red:       #ef4444;
+    --text:      #f1f5f9;
+    --text-muted:#94a3b8;
+    --radius:    12px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; overflow: hidden; }
+
+  /* ── Top bar ──────────────────────────────────────────────── */
+  .top-bar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+  }
+  .tb-logo { font-size: 18px; font-weight: 800; color: var(--violet-lt); flex-shrink: 0; }
+  .tb-role {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 99px;
+    color: var(--violet-lt);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tb-progress {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+  }
+  .tb-q-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+  .tb-q-label span { color: var(--text); font-weight: 700; }
+  .progress-track {
+    width: 160px;
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--violet), var(--cyan));
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+  .tb-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .state-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 99px;
+    transition: all 0.3s;
+  }
+  .state-badge.ready      { background:rgba(16,185,129,0.15);  color:#34d399; }
+  .state-badge.speaking   { background:rgba(6,182,212,0.15);   color:var(--cyan); }
+  .state-badge.recording  { background:rgba(239,68,68,0.15);   color:#f87171; animation: pulse-badge 1s infinite; }
+  .state-badge.processing { background:rgba(124,58,237,0.15);  color:var(--violet-lt); }
+  .state-badge.reviewing  { background:rgba(245,158,11,0.15);  color:#fbbf24; }
+  .state-badge.done       { background:rgba(16,185,129,0.15);  color:#34d399; }
+  @keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .tb-exit {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    transition: all 0.15s;
+  }
+  .tb-exit:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  /* ── Main grid ────────────────────────────────────────────── */
+  .room-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+
+  /* ── Left panel ───────────────────────────────────────────── */
+  .left-panel {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Camera */
+  .camera-wrap {
+    position: relative;
+    flex-shrink: 0;
+    background: #000;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  #camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1); /* mirror */
+  }
+  .cam-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0,0,0,0.7);
+    font-size: 13px;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .cam-overlay.hidden { opacity: 0; }
+  .cam-live-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(16,185,129,0.4);
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #34d399;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .cam-live-badge.visible { opacity: 1; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulse-dot 1.2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+  /* Audio visualizer */
+  .audio-viz {
+    height: 48px;
+    background: rgba(0,0,0,0.4);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .viz-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+  #level-canvas { flex: 1; height: 32px; display: block; }
+
+  /* Scores panel (left) */
+  .left-scores {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .left-scores h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .score-mini {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .score-mini .sm-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .score-mini .sm-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .score-mini .sm-val { font-size: 22px; font-weight: 800; margin: 4px 0; }
+  .score-mini .sm-bar { height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .score-mini .sm-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+  .sm-comm .sm-val  { color: var(--violet-lt); }
+  .sm-comm .sm-fill { background: var(--violet-lt); }
+  .sm-tech .sm-val  { color: var(--emerald); }
+  .sm-tech .sm-fill { background: var(--emerald); }
+  .sm-conf .sm-val  { color: var(--cyan); }
+  .sm-conf .sm-fill { background: var(--cyan); }
+  .sm-prob .sm-val  { color: var(--amber); }
+  .sm-prob .sm-fill { background: var(--amber); }
+  .score-placeholder {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .score-placeholder span { font-size: 28px; display: block; margin-bottom: 8px; }
+
+  /* ── Right panel ──────────────────────────────────────────── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  /* Question card */
+  .question-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    flex-shrink: 0;
+  }
+  .q-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .q-type-badge {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 5px;
+    background: rgba(124,58,237,0.15);
+    color: var(--violet-lt);
+    border: 1px solid rgba(124,58,237,0.2);
+  }
+  .q-type-badge.technical   { background:rgba(16,185,129,0.12);  color:var(--emerald); border-color:rgba(16,185,129,0.2); }
+  .q-type-badge.situational { background:rgba(6,182,212,0.12);   color:var(--cyan);    border-color:rgba(6,182,212,0.2); }
+  .q-type-badge.resume_based { background:rgba(245,158,11,0.12); color:var(--amber);   border-color:rgba(245,158,11,0.2); }
+  .q-type-badge.follow_up   { background:rgba(239,68,68,0.12);   color:#f87171;        border-color:rgba(239,68,68,0.2); }
+  .tts-indicator {
+    font-size: 11px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    animation: fade-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes fade-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .tts-indicator.hidden { display: none; }
+  .q-text {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  /* Record area */
+  .record-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    padding: 16px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .record-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .record-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+  .record-btn:not(:disabled):hover { transform: scale(1.07); }
+  .record-btn .btn-ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+  .record-btn.state-ready {
+    background: linear-gradient(135deg, #7c3aed, #06b6d4);
+    box-shadow: 0 0 20px rgba(124,58,237,0.4);
+  }
+  .record-btn.state-ready .btn-ring { border-color: rgba(124,58,237,0.3); }
+  .record-btn.state-recording {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    box-shadow: 0 0 28px rgba(239,68,68,0.5);
+    animation: rec-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes rec-pulse { 0%,100%{box-shadow:0 0 28px rgba(239,68,68,0.5)} 50%{box-shadow:0 0 46px rgba(239,68,68,0.8)} }
+  .record-btn.state-disabled { background: rgba(255,255,255,0.06); box-shadow: none; }
+  .btn-icon { font-size: 26px; }
+  .btn-stop { font-size: 22px; }
+
+  .record-info { flex: 1; }
+  .rec-main-txt { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .rec-hint-txt { font-size: 12px; color: var(--text-muted); }
+  .rec-timer { font-size: 20px; font-weight: 800; color: var(--red); font-variant-numeric: tabular-nums; }
+
+  /* Transcript section */
+  .transcript-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 0;
+  }
+  .transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .transcribed-badge {
+    font-size: 11px;
+    color: var(--emerald);
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25);
+    padding: 2px 8px;
+    border-radius: 99px;
+    display: none;
+  }
+  .transcript-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+  .transcript-body.empty { color: var(--text-muted); font-style: italic; }
+  .transcript-body::-webkit-scrollbar { width: 5px; }
+  .transcript-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+
+  /* Feedback strip */
+  .feedback-strip {
+    display: none;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .feedback-strip.visible { display: flex; }
+  .fb-block {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    overflow-y: auto;
+    max-height: 110px;
+  }
+  .fb-block h5 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .fb-block ul { padding-left: 14px; }
+  .fb-block li { margin-bottom: 4px; color: var(--text-muted); line-height: 1.4; }
+  .fb-strengths h5 { color: var(--emerald); }
+  .fb-weaknesses h5 { color: var(--amber); }
+
+  /* Action bar */
+  .action-bar {
+    display: none;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .action-bar.visible { display: flex; }
+  .btn-next {
+    flex: 1;
+    padding: 13px 20px;
+    background: linear-gradient(135deg, var(--violet), #5b21b6);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-next:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,58,237,0.4); }
+  .btn-finish {
+    padding: 13px 20px;
+    background: transparent;
+    border: 1px solid rgba(16,185,129,0.35);
+    border-radius: 10px;
+    color: var(--emerald);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-finish:hover { background: rgba(16,185,129,0.1); }
+
+  /* ── Final report overlay ──────────────────────────────── */
+  .report-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+    display: none;
+    overflow-y: auto;
+  }
+  .report-overlay.open { display: flex; }
+  .report-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 680px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slide-up 0.4s ease;
+  }
+  @keyframes slide-up { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .report-card::-webkit-scrollbar { width: 5px; }
+  .report-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+  .report-header { text-align: center; margin-bottom: 28px; }
+  .report-header h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .report-header p  { color: var(--text-muted); font-size: 13px; }
+  .hire-badge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+  .hire-badge.strong-hire { background: rgba(16,185,129,0.2);  color:#34d399; border:1px solid rgba(16,185,129,0.4); }
+  .hire-badge.hire        { background: rgba(6,182,212,0.2);   color:var(--cyan); border:1px solid rgba(6,182,212,0.4); }
+  .hire-badge.lean        { background: rgba(245,158,11,0.2);  color:var(--amber); border:1px solid rgba(245,158,11,0.4); }
+  .hire-badge.no-hire     { background: rgba(239,68,68,0.2);   color:#f87171; border:1px solid rgba(239,68,68,0.4); }
+  .report-scores {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .rs-cell {
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 6px;
+  }
+  .rs-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .rs-val { font-size: 20px; font-weight: 800; }
+  .rs-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  .report-section { margin-bottom: 20px; }
+  .report-section h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .report-section p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
+  .report-section ul { padding-left: 18px; }
+  .report-section li { font-size: 13px; color: var(--text-muted); margin-bottom: 5px; line-height: 1.5; }
+  .report-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: center;
+  }
+  .rpt-btn-primary {
+    padding: 12px 28px;
+    background: linear-gradient(135deg,var(--violet),var(--cyan));
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .rpt-btn-secondary {
+    padding: 12px 28px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  /* ── Processing overlay ───────────────────────────────── */
+  .processing-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    display: none;
+    border-radius: var(--radius);
+  }
+  .processing-overlay.visible { display: flex; }
+  .proc-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(124,58,237,0.2);
+    border-top-color: var(--violet-lt);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .proc-label { font-size: 13px; color: var(--violet-lt); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ════════════════════════════════════════════ -->
+<div class="top-bar">
+  <div class="tb-logo">🎤 AI Room</div>
+  <div class="tb-role" id="tb-role">Loading…</div>
+  <div class="tb-progress">
+    <span class="tb-q-label">Q <span id="q-cur">1</span> / <span id="q-tot">5</span></span>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:20%"></div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="state-badge ready" id="state-badge">Ready</span>
+    <a href="/interview/v2" class="tb-exit">✕ Exit</a>
+  </div>
+</div>
+
+<!-- ═══ MAIN GRID ═══════════════════════════════════════════ -->
+<div class="room-grid">
+
+  <!-- ── LEFT PANEL ─────────────────────────────────────── -->
+  <div class="left-panel">
+
+    <!-- Camera -->
+    <div class="camera-wrap">
+      <video id="camera-video" autoplay muted playsinline></video>
+      <div class="cam-overlay" id="cam-overlay">
+        <span style="font-size:28px">📷</span>
+        <span>Starting camera…</span>
+      </div>
+      <div class="cam-live-badge" id="cam-live">
+        <span class="live-dot"></span> LIVE
+      </div>
+    </div>
+
+    <!-- Audio level visualizer -->
+    <div class="audio-viz">
+      <span class="viz-label">🎙️ MIC</span>
+      <canvas id="level-canvas"></canvas>
+    </div>
+
+    <!-- Scores -->
+    <div class="left-scores">
+      <div id="score-placeholder" class="score-placeholder">
+        <span>📊</span>
+        Scores will appear here after your first answer is evaluated.
+      </div>
+      <div id="score-grid" class="score-grid" style="display:none">
+        <div class="score-mini sm-comm">
+          <span class="sm-icon">🗣️</span>
+          <div class="sm-label">Comm</div>
+          <div class="sm-val" id="sc-comm">—</div>
+          <div class="sm-bar"><div class="sm-fill" id="sc-comm-bar" style="width:0%"></div></div>
+        </div>
+        <div class="score-mini sm-tech">
+          <span class="sm-icon">⚙️</span>
+          <div class="sm-label">Tech</div>
+          <div class="sm-val" id="sc-tech">—</div>
+          <div class="sm-bar"><div class="sm-fill" id="sc-tech-bar" style="width:0%"></div></div>
+        </div>
+        <div class="score-mini sm-conf">
+          <span class="sm-icon">💪</span>
+          <div class="sm-label">Confidence</div>
+          <div class="sm-val" id="sc-conf">—</div>
+          <div class="sm-bar"><div class="sm-fill" id="sc-conf-bar" style="width:0%"></div></div>
+        </div>
+        <div class="score-mini sm-prob">
+          <span class="sm-icon">🧩</span>
+          <div class="sm-label">Problem</div>
+          <div class="sm-val" id="sc-prob">—</div>
+          <div class="sm-bar"><div class="sm-fill" id="sc-prob-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ── RIGHT PANEL ────────────────────────────────────── -->
+  <div class="right-panel">
+
+    <!-- Question card -->
+    <div class="question-card" style="position:relative">
+      <div class="q-meta">
+        <span class="q-type-badge" id="q-type-badge">BEHAVIORAL</span>
+        <span class="tts-indicator" id="tts-indicator">🔊 Speaking question…</span>
+      </div>
+      <p class="q-text" id="q-text">Preparing your first question…</p>
+    </div>
+
+    <!-- Record area -->
+    <div class="record-area">
+      <button class="record-btn state-disabled" id="record-btn" onclick="toggleRecording()" disabled>
+        <span class="btn-ring"></span>
+        <span class="btn-icon" id="btn-icon">🎤</span>
+      </button>
+      <div class="record-info">
+        <div class="rec-main-txt" id="rec-main">Preparing…</div>
+        <div class="rec-hint-txt" id="rec-hint">Please wait while the question is spoken</div>
+        <div class="rec-timer" id="rec-timer" style="display:none">00:00</div>
+      </div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="transcript-section" style="position:relative">
+      <div class="transcript-header">
+        <span>📝 Your Answer</span>
+        <span class="transcribed-badge" id="transcribed-badge">✓ Transcribed</span>
+      </div>
+      <div class="transcript-body empty" id="transcript-body">
+        Press the microphone button and speak your answer…
+      </div>
+      <div class="processing-overlay" id="proc-overlay">
+        <div class="proc-spinner"></div>
+        <div class="proc-label" id="proc-label">Transcribing…</div>
+      </div>
+    </div>
+
+    <!-- Feedback strip (strengths/weaknesses) -->
+    <div class="feedback-strip" id="feedback-strip">
+      <div class="fb-block fb-strengths">
+        <h5>✨ Strengths</h5>
+        <ul id="fb-strengths-list"></ul>
+      </div>
+      <div class="fb-block fb-weaknesses">
+        <h5>🎯 Improve</h5>
+        <ul id="fb-weaknesses-list"></ul>
+      </div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar" id="action-bar">
+      <button class="btn-next" id="btn-next" onclick="handleNext()">Next Question →</button>
+      <button class="btn-finish" onclick="finishInterview()">Finish &amp; Get Report</button>
+    </div>
+
+  </div><!-- /right-panel -->
+
+</div><!-- /room-grid -->
+
+<!-- ═══ FINAL REPORT OVERLAY ════════════════════════════════ -->
+<div class="report-overlay" id="report-overlay">
+  <div class="report-card">
+    <div class="report-header">
+      <h2>🎉 Interview Complete</h2>
+      <p id="rpt-role-txt">Your AI Interview Report</p>
+      <br>
+      <div class="hire-badge" id="rpt-hire-badge">—</div>
+    </div>
+
+    <div class="report-scores">
+      <div class="rs-cell"><span class="rs-icon">🏆</span><div class="rs-val" id="rpt-overall" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Overall</div></div>
+      <div class="rs-cell"><span class="rs-icon">🗣️</span><div class="rs-val" id="rpt-comm" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Comm</div></div>
+      <div class="rs-cell"><span class="rs-icon">⚙️</span><div class="rs-val" id="rpt-tech" style="color:var(--emerald)">—</div><div class="rs-lbl">Tech</div></div>
+      <div class="rs-cell"><span class="rs-icon">💪</span><div class="rs-val" id="rpt-conf" style="color:var(--cyan)">—</div><div class="rs-lbl">Confidence</div></div>
+      <div class="rs-cell"><span class="rs-icon">🧩</span><div class="rs-val" id="rpt-prob" style="color:var(--amber)">—</div><div class="rs-lbl">Problem</div></div>
+    </div>
+
+    <div class="report-section">
+      <h4 style="color:var(--emerald)">✨ Strengths</h4>
+      <p id="rpt-strengths">—</p>
+    </div>
+    <div class="report-section">
+      <h4 style="color:var(--amber)">🎯 Areas to Improve</h4>
+      <p id="rpt-weaknesses">—</p>
+    </div>
+    <div class="report-section" id="rpt-roadmap-section" style="display:none">
+      <h4 style="color:var(--cyan)">🗺️ Action Roadmap</h4>
+      <ul id="rpt-roadmap"></ul>
+    </div>
+    <div class="report-section" id="rpt-suggestion-section" style="display:none">
+      <h4 style="color:var(--violet-lt)">💡 Coaching Advice</h4>
+      <p id="rpt-suggestion">—</p>
+    </div>
+
+    <div class="report-actions">
+      <a href="/interview/v2" class="rpt-btn-primary">🔄 New Interview</a>
+      <a href="/progress" class="rpt-btn-secondary">📈 View Progress</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ JAVASCRIPT ═══════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════════
+// 1. STATE
+// ═══════════════════════════════════════════════
+const S = { INIT:'init', SPEAKING:'speaking', READY:'ready', RECORDING:'recording',
+            TRANSCRIBING:'transcribing', EVALUATING:'evaluating',
+            REVIEWING:'reviewing', FINISHING:'finishing', DONE:'done' };
+
+let appState    = S.INIT;
+let sessionId   = null;
+let answerId    = null;
+let questionNum = 1;
+let maxQ        = 5;
+let lastFollowUp   = { needed: false, reason: '' };
+let lastNextQ      = { text: '', type: 'technical' };  // Phase 4: pre-computed from /evaluate
+
+// Recorder
+let mediaRecorder = null;
+let audioChunks   = [];
+let recTimerInt   = null;
+let recSeconds    = 0;
+
+// Audio analyser for level meter
+let analyserNode  = null;
+let analyserData  = null;
+let animFrame     = null;
+let levelCanvas   = null;
+let levelCtx      = null;
+
+// ═══════════════════════════════════════════════
+// 2. DOM REFS
+// ═══════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════
+// 3. STATE MACHINE — UI updates
+// ═══════════════════════════════════════════════
+function setState(s) {
+  appState = s;
+  const badge  = $('state-badge');
+  const recBtn = $('record-btn');
+  const icon   = $('btn-icon');
+  const main   = $('rec-main');
+  const hint   = $('rec-hint');
+  const timer  = $('rec-timer');
+  const ttsInd = $('tts-indicator');
+  const proc   = $('proc-overlay');
+
+  // Reset all dynamic classes
+  badge.className = 'state-badge';
+  recBtn.className = 'record-btn';
+  recBtn.disabled  = true;
+
+  switch(s) {
+    case S.SPEAKING:
+      badge.classList.add('speaking');
+      badge.textContent = '🔊 Speaking';
+      recBtn.classList.add('state-disabled');
+      main.textContent = 'Listening to question…';
+      hint.textContent = 'Recording will be enabled after the question is spoken';
+      ttsInd.classList.remove('hidden');
+      $('proc-overlay').classList.remove('visible');
+      break;
+
+    case S.READY:
+      badge.classList.add('ready');
+      badge.textContent = '● Ready';
+      recBtn.classList.add('state-ready');
+      recBtn.disabled = false;
+      icon.textContent = '🎤';
+      main.textContent = 'Click to Record';
+      hint.textContent = 'Speak your answer clearly — click again to stop';
+      timer.style.display = 'none';
+      ttsInd.classList.add('hidden');
+      $('proc-overlay').classList.remove('visible');
+      $('action-bar').classList.remove('visible');
+      $('feedback-strip').classList.remove('visible');
+      break;
+
+    case S.RECORDING:
+      badge.classList.add('recording');
+      badge.textContent = '⏺ Recording';
+      recBtn.classList.add('state-recording');
+      recBtn.disabled = false;
+      icon.textContent = '⏹';
+      main.textContent = 'Recording… click to stop';
+      hint.textContent = 'Speak clearly — Whisper will transcribe your answer';
+      timer.style.display = 'block';
+      ttsInd.classList.add('hidden');
+      break;
+
+    case S.TRANSCRIBING:
+      badge.classList.add('processing');
+      badge.textContent = '⚙ Transcribing';
+      recBtn.classList.add('state-disabled');
+      icon.textContent = '🎤';
+      main.textContent = 'Transcribing your answer…';
+      hint.textContent = 'Whisper is converting your speech to text';
+      timer.style.display = 'none';
+      $('proc-label').textContent = 'Transcribing audio…';
+      $('proc-overlay').classList.add('visible');
+      break;
+
+    case S.EVALUATING:
+      badge.classList.add('processing');
+      badge.textContent = '⚙ Evaluating';
+      main.textContent = 'GPT is evaluating your answer…';
+      hint.textContent = 'Scoring communication, technical depth, confidence & problem solving';
+      $('proc-label').textContent = 'GPT evaluating…';
+      $('proc-overlay').classList.add('visible');
+      break;
+
+    case S.REVIEWING:
+      badge.classList.add('reviewing');
+      badge.textContent = '📊 Review';
+      main.textContent  = 'Answer evaluated!';
+      hint.textContent  = 'Review your scores, then continue';
+      $('proc-overlay').classList.remove('visible');
+      $('action-bar').classList.add('visible');
+      $('feedback-strip').classList.add('visible');
+      updateActionButtons();
+      break;
+
+    case S.FINISHING:
+      badge.classList.add('processing');
+      badge.textContent = '⚙ Generating Report';
+      main.textContent  = 'Generating your final report…';
+      $('action-bar').classList.remove('visible');
+      $('proc-label').textContent = 'Generating final report…';
+      $('proc-overlay').classList.add('visible');
+      break;
+
+    case S.DONE:
+      badge.classList.add('done');
+      badge.textContent = '✓ Done';
+      $('proc-overlay').classList.remove('visible');
+      break;
+  }
+}
+
+function updateActionButtons() {
+  const nextBtn = $('btn-next');
+  if (questionNum >= maxQ) {
+    nextBtn.style.display = 'none';
+  } else {
+    nextBtn.style.display = 'block';
+    nextBtn.textContent = lastFollowUp.needed
+      ? '🔄 Follow-up Question →'
+      : 'Next Question →';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 4. CAMERA
+// ═══════════════════════════════════════════════
+async function setupCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' }, audio: false });
+    const vid    = $('camera-video');
+    vid.srcObject = stream;
+    vid.onloadedmetadata = () => {
+      $('cam-overlay').classList.add('hidden');
+      $('cam-live').classList.add('visible');
+    };
+  } catch(e) {
+    console.warn('Camera unavailable:', e);
+    $('cam-overlay').querySelector('span:last-child').textContent = 'Camera unavailable';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 5. AUDIO LEVEL METER
+// ═══════════════════════════════════════════════
+function setupLevelCanvas() {
+  levelCanvas = $('level-canvas');
+  levelCtx    = levelCanvas.getContext('2d');
+  levelCanvas.width  = levelCanvas.offsetWidth  || 220;
+  levelCanvas.height = 32;
+  drawIdleBars();
+}
+
+function drawIdleBars() {
+  if (!levelCtx) return;
+  const w = levelCanvas.width, h = levelCanvas.height;
+  const bars = 24, gap = 3;
+  const bw   = (w - gap * (bars - 1)) / bars;
+  levelCtx.clearRect(0, 0, w, h);
+  for (let i = 0; i < bars; i++) {
+    const bh = Math.random() * 6 + 3;
+    const x  = i * (bw + gap);
+    const y  = (h - bh) / 2;
+    levelCtx.fillStyle = 'rgba(124,58,237,0.2)';
+    levelCtx.beginPath();
+    levelCtx.roundRect(x, y, bw, bh, 2);
+    levelCtx.fill();
+  }
+}
+
+function startLevelMeter(micStream) {
+  const ctx    = new (window.AudioContext || window.webkitAudioContext)();
+  const source = ctx.createMediaStreamSource(micStream);
+  analyserNode = ctx.createAnalyser();
+  analyserNode.fftSize = 64;
+  analyserData = new Uint8Array(analyserNode.frequencyBinCount);
+  source.connect(analyserNode);
+  drawLevelBars();
+}
+
+function drawLevelBars() {
+  animFrame = requestAnimationFrame(drawLevelBars);
+  if (!analyserNode || !levelCtx) return;
+  analyserNode.getByteFrequencyData(analyserData);
+  const w = levelCanvas.width, h = levelCanvas.height;
+  const bars = Math.min(analyserData.length, 24);
+  const gap  = 3;
+  const bw   = (w - gap * (bars - 1)) / bars;
+  levelCtx.clearRect(0, 0, w, h);
+  for (let i = 0; i < bars; i++) {
+    const val = analyserData[i] / 255;
+    const bh  = Math.max(3, val * h * 0.9);
+    const x   = i * (bw + gap);
+    const y   = (h - bh) / 2;
+    const alpha = 0.3 + val * 0.7;
+    levelCtx.fillStyle = appState === S.RECORDING
+      ? `rgba(239,68,68,${alpha})`
+      : `rgba(124,58,237,${alpha})`;
+    levelCtx.beginPath();
+    levelCtx.roundRect(x, y, bw, bh, 2);
+    levelCtx.fill();
+  }
+}
+
+function stopLevelMeter() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame    = null;
+  analyserNode = null;
+  drawIdleBars();
+}
+
+// ═══════════════════════════════════════════════
+// 6. TEXT-TO-SPEECH (browser SpeechSynthesis)
+// ═══════════════════════════════════════════════
+function speakText(text, onEnd) {
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate  = 0.92;
+  utt.pitch = 1.05;
+  utt.volume = 1.0;
+  // Pick best available English voice
+  function chooseVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    return voices.find(v => v.name.toLowerCase().includes('google') && v.lang.startsWith('en')) ||
+           voices.find(v => v.lang === 'en-US') ||
+           voices.find(v => v.lang.startsWith('en')) ||
+           voices[0];
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length) utt.voice = chooseVoice();
+  else speechSynthesis.onvoiceschanged = () => { utt.voice = chooseVoice(); };
+  utt.onend   = onEnd;
+  utt.onerror = onEnd;  // still proceed on error
+  window.speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════
+// 7. DISPLAY QUESTION
+// ═══════════════════════════════════════════════
+function displayQuestion(text, type, num) {
+  $('q-text').textContent       = text;
+  $('q-cur').textContent        = num;
+  const pct = (num / maxQ) * 100;
+  $('progress-fill').style.width = pct + '%';
+
+  // Type badge
+  const badge = $('q-type-badge');
+  badge.textContent = (type || 'behavioral').replace('_', ' ').toUpperCase();
+  badge.className   = 'q-type-badge ' + (type || 'behavioral');
+
+  // Clear previous answer UI
+  const body = $('transcript-body');
+  body.textContent = 'Press the microphone button and speak your answer…';
+  body.classList.add('empty');
+  $('transcribed-badge').style.display = 'none';
+  $('feedback-strip').classList.remove('visible');
+  $('action-bar').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════
+// 8. MIC RECORDING
+// ═══════════════════════════════════════════════
+async function toggleRecording() {
+  if (appState === S.READY)      { await startRecording(); }
+  else if (appState === S.RECORDING) { stopRecording(); }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startLevelMeter(stream);
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    audioChunks   = [];
+
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      stopLevelMeter();
+      const blob = new Blob(audioChunks, { type: mimeType });
+      await transcribeAudio(blob);
+    };
+
+    mediaRecorder.start(100);
+    setState(S.RECORDING);
+    startTimer();
+  } catch(e) {
+    alert('Microphone access denied: ' + e.message);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    stopTimer();
+    mediaRecorder.stop();
+    setState(S.TRANSCRIBING);
+  }
+}
+
+// ── Timer ─────────────────────────────────────
+function startTimer() {
+  recSeconds = 0;
+  updateTimer();
+  recTimerInt = setInterval(() => { recSeconds++; updateTimer(); }, 1000);
+}
+function stopTimer()  { clearInterval(recTimerInt); }
+function updateTimer() {
+  const m = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+  const s = String(recSeconds % 60).padStart(2, '0');
+  $('rec-timer').textContent = `${m}:${s}`;
+}
+
+// ═══════════════════════════════════════════════
+// 9. TRANSCRIBE
+// ═══════════════════════════════════════════════
+async function transcribeAudio(blob) {
+  setState(S.TRANSCRIBING);
+
+  const formData = new FormData();
+  formData.append('file', blob, 'recording.webm');
+
+  try {
+    const res  = await fetch('/api/v2/interview/transcribe', { method:'POST', body:formData });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showTranscript(data.transcript);
+    await evaluateAnswer(data.transcript);
+  } catch(err) {
+    alert('Transcription failed: ' + err.message + '\nPlease try again.');
+    setState(S.READY);
+  }
+}
+
+function showTranscript(text) {
+  const body = $('transcript-body');
+  body.textContent = text || '(no transcript)';
+  body.classList.remove('empty');
+  $('transcribed-badge').style.display = 'inline-block';
+}
+
+// ═══════════════════════════════════════════════
+// 10. EVALUATE
+// ═══════════════════════════════════════════════
+async function evaluateAnswer(transcript) {
+  setState(S.EVALUATING);
+  try {
+    const res  = await fetch('/api/v2/interview/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ answer_id: answerId, answer_text: transcript })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Update live scores
+    updateScores(data.comm_score, data.tech_score, data.conf_score, data.problem_score);
+
+    // Feedback
+    showFeedback(data.strengths || [], data.weaknesses || []);
+
+    // Phase 4: store pre-computed next question from single GPT call
+    lastFollowUp = { needed: data.follow_up_needed, reason: data.follow_up_reason };
+    lastNextQ    = { text: data.next_question_text || '', type: data.next_question_type || 'technical' };
+
+    setState(S.REVIEWING);
+  } catch(err) {
+    alert('Evaluation failed: ' + err.message);
+    setState(S.READY);
+  }
+}
+
+function updateScores(comm, tech, conf, prob) {
+  $('score-placeholder').style.display = 'none';
+  $('score-grid').style.display        = 'grid';
+
+  function set(idVal, idBar, score) {
+    const v = score != null ? score.toFixed(1) : '—';
+    const p = score != null ? (score / 10 * 100).toFixed(0) : 0;
+    $(idVal).textContent      = v;
+    $(idBar).style.width = p + '%';
+  }
+  set('sc-comm', 'sc-comm-bar', comm);
+  set('sc-tech', 'sc-tech-bar', tech);
+  set('sc-conf', 'sc-conf-bar', conf);
+  set('sc-prob', 'sc-prob-bar', prob);
+}
+
+function showFeedback(strengths, weaknesses) {
+  const sl = $('fb-strengths-list');
+  const wl = $('fb-weaknesses-list');
+  sl.innerHTML = strengths.map(s => `<li>${s}</li>`).join('') || '<li>—</li>';
+  wl.innerHTML = weaknesses.map(w => `<li>${w}</li>`).join('') || '<li>—</li>';
+}
+
+// ═══════════════════════════════════════════════
+// 11. NEXT QUESTION
+// ═══════════════════════════════════════════════
+async function handleNext() {
+  try {
+    const res  = await fetch('/api/v2/interview/next', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        session_id:         sessionId,
+        follow_up_needed:   lastFollowUp.needed,
+        follow_up_reason:   lastFollowUp.reason,
+        last_answer_id:     answerId,
+        // Phase 4: pass pre-computed question — backend skips extra GPT call
+        next_question_text: lastNextQ.text,
+        next_question_type: lastNextQ.type,
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    answerId    = data.answer_id;
+    questionNum = data.question_num;
+
+    displayQuestion(data.question_text, data.question_type, questionNum);
+    setState(S.SPEAKING);
+    speakText(data.question_text, () => setState(S.READY));
+  } catch(err) {
+    alert('Error getting next question: ' + err.message);
+    setState(S.REVIEWING);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 12. FINISH
+// ═══════════════════════════════════════════════
+async function finishInterview() {
+  if (!confirm('Finish the interview and generate your report?')) return;
+  setState(S.FINISHING);
+  try {
+    const res  = await fetch('/api/v2/interview/finish', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showFinalReport(data);
+    setState(S.DONE);
+  } catch(err) {
+    alert('Error generating report: ' + err.message);
+    setState(S.REVIEWING);
+  }
+}
+
+function showFinalReport(data) {
+  $('rpt-role-txt').textContent = data.role || 'Interview Report';
+
+  // Hire badge
+  const hb  = $('rpt-hire-badge');
+  const rec = (data.hiring_recommendation || '').toLowerCase();
+  hb.textContent = data.hiring_recommendation || '—';
+  hb.className   = 'hire-badge ' +
+    (rec.includes('strong hire') ? 'strong-hire' :
+     rec.includes('no hire')     ? 'no-hire'     :
+     rec.includes('lean')        ? 'lean'        : 'hire');
+
+  // Scores
+  $('rpt-overall').textContent = data.overall_score != null ? data.overall_score + '/100' : '—';
+  $('rpt-comm').textContent    = data.comm_score    != null ? data.comm_score    + '/100' : '—';
+  $('rpt-tech').textContent    = data.tech_score    != null ? data.tech_score    + '/100' : '—';
+  $('rpt-conf').textContent    = data.conf_score    != null ? data.conf_score    + '/100' : '—';
+  $('rpt-prob').textContent    = data.problem_score != null ? data.problem_score + '/100' : '—';
+
+  // Prose
+  $('rpt-strengths').textContent  = data.strengths_summary  || '—';
+  $('rpt-weaknesses').textContent = data.weaknesses_summary || '—';
+
+  // Roadmap
+  if (data.roadmap && data.roadmap.length) {
+    $('rpt-roadmap-section').style.display = 'block';
+    $('rpt-roadmap').innerHTML = data.roadmap.map(r => `<li>${r}</li>`).join('');
+  }
+
+  // Suggestion
+  if (data.suggestion) {
+    $('rpt-suggestion-section').style.display = 'block';
+    $('rpt-suggestion').textContent = data.suggestion;
+  }
+
+  $('report-overlay').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════
+// 13. INIT
+// ═══════════════════════════════════════════════
+(async function init() {
+  // Load session data stored by start page
+  const raw = sessionStorage.getItem('iv_data');
+  if (!raw) { window.location.href = '/interview/v2'; return; }
+
+  let ivData;
+  try { ivData = JSON.parse(raw); }
+  catch(e) { window.location.href = '/interview/v2'; return; }
+
+  sessionId   = ivData.session_id;
+  answerId    = ivData.answer_id;
+  maxQ        = ivData.max_questions || 5;
+
+  // Top bar
+  $('tb-role').textContent = ivData.role || 'Interview';
+  $('q-tot').textContent   = maxQ;
+
+  // Set up canvas
+  setupLevelCanvas();
+
+  // Start camera (non-blocking)
+  setupCamera();
+
+  // Display Q1
+  displayQuestion(ivData.question_text, ivData.question_type, 1);
+
+  // Speak Q1 then enable mic
+  setState(S.SPEAKING);
+
+  // Small delay so voices load in Chrome
+  setTimeout(() => {
+    speakText(ivData.question_text, () => setState(S.READY));
+  }, 300);
+})();
+</script>
+</body>
+</html>

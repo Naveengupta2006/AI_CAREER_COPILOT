@@ -22,12 +22,31 @@
             </div>
         </div>
 
+        <div class="sub-scores-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Communication</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--violet);">{{ report.avg_comm|default(0) }}<span style="font-size: 12px; color: var(--text-muted);">/100</span></div>
+            </div>
+            <div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Tech Knowledge</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--emerald);">{{ report.avg_tech|default(0) }}<span style="font-size: 12px; color: var(--text-muted);">/100</span></div>
+            </div>
+            <div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Confidence</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--cyan);">{{ report.avg_conf|default(0) }}<span style="font-size: 12px; color: var(--text-muted);">/100</span></div>
+            </div>
+            <div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Problem Solving</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--warning);">{{ report.avg_prob|default(0) }}<span style="font-size: 12px; color: var(--text-muted);">/100</span></div>
+            </div>
+        </div>
+
         <hr>
 
         <div class="feedback-details">
             <div class="feedback-section" style="background: rgba(124, 58, 237, 0.04); border-color: rgba(124, 58, 237, 0.25);">
                 <h4 style="color: var(--violet); font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    🎙️ GPT-5 Interview Synthesis
+                    🎙️ AI Interview Synthesis
                 </h4>
                 <p style="font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-top: 8px; white-space: pre-line;">
                     {{ report.summary }}
@@ -50,6 +69,18 @@
             {% endif %}
         </div>
     </div>
+
+
+
+    {% if evaluations and evaluations|length > 0 %}
+    <!-- Graphical Representation of Scores -->
+    <div class="card" style="margin-bottom: 24px; padding: 24px;">
+        <h3 style="margin-bottom: 15px; font-size: 16px; font-weight: 700; color: var(--text);">Scores by Question</h3>
+        <div style="position: relative; height: 250px; width: 100%;">
+            <canvas id="sessionScoresChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Question Breakdown Section Header -->
     <h3 class="section-interview" style="margin-bottom: 15px;">Question-by-Question Breakdown</h3>
@@ -120,4 +151,80 @@
         </a>
     </div>
 </div>
+
+{% if evaluations and evaluations|length > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="chart-data" type="application/json">
+    {
+        "labels": [
+            {% for ev in evaluations %}
+            "Q{{ loop.index }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        "scores": [
+            {% for ev in evaluations %}
+            {{ ev.score }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dataStr = document.getElementById('chart-data').textContent;
+    if (!dataStr.trim()) return;
+    const chartData = JSON.parse(dataStr);
+    if (!chartData.scores || chartData.scores.length === 0) return;
+
+    const canvas = document.getElementById('sessionScoresChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+    gradient.addColorStop(0, 'rgba(6, 182, 212, 0.6)'); // Cyan
+    gradient.addColorStop(1, 'rgba(124, 58, 237, 0.1)'); // Violet
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Score',
+                data: chartData.scores,
+                backgroundColor: gradient,
+                borderColor: '#06b6d4',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Score: ${context.parsed.y}/100`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
 {% endblock %}

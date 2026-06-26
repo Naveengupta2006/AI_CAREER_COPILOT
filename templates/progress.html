@@ -1,0 +1,707 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- ═══════════════════════════════════════════════════════════
+     Page Styles (scoped)
+═══════════════════════════════════════════════════════════ -->
+<style>
+  /* ── Hero Stats Grid ─────────────────────────────────── */
+  .progress-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, var(--bg-card, #1e1e2e) 0%, rgba(124,58,237,0.08) 100%);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+  }
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .stat-card.readiness::before { background: linear-gradient(90deg, #7c3aed, #06b6d4); }
+  .stat-card.total::before    { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+  .stat-card.best::before     { background: linear-gradient(90deg, #10b981, #34d399); }
+  .stat-card.latest::before   { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-value {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-card.readiness .stat-value {
+    background: linear-gradient(135deg, #a78bfa, #06b6d4);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .stat-card.best .stat-value {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .stat-card.latest .stat-value {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 6px;
+  }
+
+  /* ── Readiness Badge ─────────────────────────────────── */
+  .readiness-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .readiness-badge.high   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .readiness-badge.mid    { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .readiness-badge.low    { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+  /* ── Chart Cards ─────────────────────────────────────── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 860px) {
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--bg-card, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 22px 22px 20px;
+  }
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text, #f1f5f9);
+    margin-bottom: 4px;
+  }
+  .chart-card .chart-sub {
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 16px;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 240px;
+  }
+  /* Full-width line chart */
+  .chart-card.full-width {
+    grid-column: 1 / -1;
+  }
+  .chart-card.full-width .chart-wrap {
+    height: 260px;
+  }
+
+  /* ── Sessions Table ──────────────────────────────────── */
+  .sessions-table-wrap {
+    background: var(--bg-card, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .sessions-table-wrap h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text, #f1f5f9);
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sessions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .sessions-table th {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted, #94a3b8);
+    padding: 10px 22px;
+    text-align: left;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+  }
+  .sessions-table td {
+    padding: 12px 22px;
+    color: var(--text, #f1f5f9);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+  }
+  .sessions-table tr:last-child td { border-bottom: none; }
+  .sessions-table tr:hover td { background: rgba(255,255,255,0.025); }
+
+  .score-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12.5px;
+  }
+  .score-pill.good { background: rgba(16,185,129,0.15); color: #34d399; }
+  .score-pill.mid  { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+  .score-pill.low  { background: rgba(239,68,68,0.15);   color: #f87171; }
+
+  .sub-score-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--text-muted, #94a3b8);
+  }
+  .bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 4px; }
+
+  .btn-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--violet, #7c3aed);
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.25);
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .btn-report:hover {
+    background: rgba(124,58,237,0.2);
+    color: #a78bfa;
+  }
+
+  /* ── Empty State ─────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 70px 40px;
+    background: var(--bg-card, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    margin-bottom: 40px;
+  }
+  .empty-icon {
+    font-size: 54px;
+    margin-bottom: 18px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-10px); }
+  }
+  .empty-state h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+  .empty-state p  { color: var(--text-muted, #94a3b8); font-size: 14px; max-width: 380px; margin: 0 auto 24px; }
+
+  /* ── Legend ──────────────────────────────────────────── */
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--text-muted, #94a3b8);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Page Header ─────────────────────────────────────── */
+  .progress-page-header {
+    margin-bottom: 28px;
+  }
+  .progress-page-header h2 {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .progress-page-header p {
+    font-size: 14px;
+    color: var(--text-muted, #94a3b8);
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Page Header
+═══════════════════════════════════════════════════════════ -->
+<div class="progress-page-header">
+  <h2>📈 Progress Tracker</h2>
+  <p>Monitor your interview readiness over time and spot trends across all skill dimensions.</p>
+</div>
+
+{% if total_sessions == 0 %}
+<!-- ─── Empty State ─────────────────────────────────────── -->
+<div class="empty-state">
+  <span class="empty-icon">🚀</span>
+  <h3>No Interview Sessions Yet</h3>
+  <p>Complete your first mock interview session and view its report to start tracking your progress here.</p>
+  <a href="/interview" class="btn btn-primary" style="padding: 12px 28px;">
+    🎙️ Start Voice Interview
+  </a>
+  &nbsp;
+  <a href="/virtual_interview" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
+    🎥 Virtual Interview Room
+  </a>
+</div>
+
+{% else %}
+
+<!-- ─── Hero Stats ──────────────────────────────────────── -->
+<div class="progress-hero">
+
+  <!-- Readiness Score -->
+  <div class="stat-card readiness">
+    <div class="stat-label">⚡ Readiness Score</div>
+    <div class="stat-value" id="readiness-val">{{ readiness_score }}</div>
+    <div class="stat-sub">/ 100 &nbsp;·&nbsp; rolling avg of last 3</div>
+    {% if readiness_score >= 75 %}
+      <div class="readiness-badge high">✅ Interview Ready</div>
+    {% elif readiness_score >= 50 %}
+      <div class="readiness-badge mid">⚡ Getting There</div>
+    {% else %}
+      <div class="readiness-badge low">🔥 Keep Practicing</div>
+    {% endif %}
+  </div>
+
+  <!-- Total Sessions -->
+  <div class="stat-card total">
+    <div class="stat-label">📋 Total Sessions</div>
+    <div class="stat-value">{{ total_sessions }}</div>
+    <div class="stat-sub">interview sessions completed</div>
+  </div>
+
+  <!-- Best Score -->
+  <div class="stat-card best">
+    <div class="stat-label">🏆 Best Score</div>
+    <div class="stat-value">{{ best_score }}</div>
+    <div class="stat-sub">/ 100 &nbsp;·&nbsp; personal best</div>
+  </div>
+
+  <!-- Latest Score -->
+  <div class="stat-card latest">
+    <div class="stat-label">🕐 Latest Score</div>
+    <div class="stat-value">{{ latest_score }}</div>
+    <div class="stat-sub">/ 100 &nbsp;·&nbsp; most recent session</div>
+  </div>
+
+</div>
+
+<!-- ─── Charts ─────────────────────────────────────────── -->
+<div class="chart-grid">
+
+  <!-- Overall Score Trend (full width) -->
+  <div class="chart-card full-width">
+    <h3>Overall Score Trend</h3>
+    <p class="chart-sub">Your interview performance over all completed sessions</p>
+    <div class="chart-wrap">
+      <canvas id="overallTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Sub-scores Line Chart -->
+  <div class="chart-card">
+    <h3>Sub-Score Breakdown</h3>
+    <p class="chart-sub">4 skill dimensions across all sessions</p>
+    <div class="chart-wrap">
+      <canvas id="subScoreChart"></canvas>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#a78bfa"></span> Communication</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Technical</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#06b6d4"></span> Confidence</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span> Problem Solving</div>
+    </div>
+  </div>
+
+  <!-- Latest Session Radar -->
+  <div class="chart-card">
+    <h3>Latest Session Radar</h3>
+    <p class="chart-sub">Skill balance from your most recent session</p>
+    <div class="chart-wrap">
+      <canvas id="radarChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Sessions Table ──────────────────────────────────── -->
+<div class="sessions-table-wrap">
+  <h3>📋 All Sessions</h3>
+  <table class="sessions-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date</th>
+        <th>Target Role</th>
+        <th>Overall</th>
+        <th>Comm.</th>
+        <th>Tech.</th>
+        <th>Conf.</th>
+        <th>Prob. Solving</th>
+        <th>Report</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions|reverse %}
+      <tr>
+        <td style="color: var(--text-muted); font-size: 12px;">{{ loop.index }}</td>
+        <td style="color: var(--text-muted); font-size: 12px; white-space: nowrap;">{{ s.date }}</td>
+        <td>
+          <span style="font-weight: 600; font-size: 13px;">{{ s.role }}</span>
+        </td>
+        <td>
+          <span class="score-pill {% if s.overall_score >= 75 %}good{% elif s.overall_score >= 50 %}mid{% else %}low{% endif %}">
+            {{ s.overall_score }}
+          </span>
+        </td>
+        <td>
+          <div class="sub-score-bar">
+            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_comm }}%; background:#a78bfa;"></div></div>
+            <span>{{ s.avg_comm }}</span>
+          </div>
+        </td>
+        <td>
+          <div class="sub-score-bar">
+            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_tech }}%; background:#34d399;"></div></div>
+            <span>{{ s.avg_tech }}</span>
+          </div>
+        </td>
+        <td>
+          <div class="sub-score-bar">
+            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_conf }}%; background:#06b6d4;"></div></div>
+            <span>{{ s.avg_conf }}</span>
+          </div>
+        </td>
+        <td>
+          <div class="sub-score-bar">
+            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_prob }}%; background:#fbbf24;"></div></div>
+            <span>{{ s.avg_prob }}</span>
+          </div>
+        </td>
+        <td>
+          <a href="/interview/report/{{ s.session_id }}" class="btn-report">View →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endif %}
+
+<!-- CTA -->
+<div style="display: flex; gap: 14px; justify-content: center; margin-bottom: 50px; flex-wrap: wrap;">
+  <a href="/interview" class="btn btn-primary" style="padding: 12px 28px;">
+    🎙️ New Voice Session
+  </a>
+  <a href="/virtual_interview" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
+    🎥 New Virtual Session
+  </a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Chart.js Data + Scripts
+═══════════════════════════════════════════════════════════ -->
+{% if total_sessions > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Embed session data safely via JSON -->
+<script id="progress-data" type="application/json">
+{
+  "labels":        [{% for s in sessions %}"{{ s.date }}"{% if not loop.last %},{% endif %}{% endfor %}],
+  "overall":       [{% for s in sessions %}{{ s.overall_score }}{% if not loop.last %},{% endif %}{% endfor %}],
+  "comm":          [{% for s in sessions %}{{ s.avg_comm }}{% if not loop.last %},{% endif %}{% endfor %}],
+  "tech":          [{% for s in sessions %}{{ s.avg_tech }}{% if not loop.last %},{% endif %}{% endfor %}],
+  "conf":          [{% for s in sessions %}{{ s.avg_conf }}{% if not loop.last %},{% endif %}{% endfor %}],
+  "prob":          [{% for s in sessions %}{{ s.avg_prob }}{% if not loop.last %},{% endif %}{% endfor %}],
+  "latest_comm":   {{ sessions[-1].avg_comm }},
+  "latest_tech":   {{ sessions[-1].avg_tech }},
+  "latest_conf":   {{ sessions[-1].avg_conf }},
+  "latest_prob":   {{ sessions[-1].avg_prob }}
+}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const raw  = document.getElementById("progress-data").textContent;
+  const data = JSON.parse(raw);
+
+  // ── Shared Chart defaults ─────────────────────────────
+  Chart.defaults.color = "#94a3b8";
+  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+
+  const gridColor  = "rgba(255,255,255,0.05)";
+  const tickColor  = "#64748b";
+
+  // ── 1. Overall Score Line Chart ───────────────────────
+  (function buildOverallChart() {
+    const ctx = document.getElementById("overallTrendChart");
+    if (!ctx) return;
+
+    const gradCtx = ctx.getContext("2d");
+    const grad = gradCtx.createLinearGradient(0, 0, 0, 260);
+    grad.addColorStop(0,   "rgba(124, 58, 237, 0.45)");
+    grad.addColorStop(0.6, "rgba(6, 182, 212, 0.12)");
+    grad.addColorStop(1,   "rgba(6, 182, 212, 0)");
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: "Overall Score",
+          data: data.overall,
+          fill: true,
+          backgroundColor: grad,
+          borderColor: "#7c3aed",
+          borderWidth: 2.5,
+          pointBackgroundColor: "#a78bfa",
+          pointBorderColor: "#1e1e2e",
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          tension: 0.42,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        animation: { duration: 900, easing: "easeInOutQuart" },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: gridColor },
+            ticks: { color: tickColor, stepSize: 20 },
+            border: { display: false }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: tickColor },
+            border: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(15,23,42,0.9)",
+            titleColor: "#f1f5f9",
+            bodyColor: "#94a3b8",
+            borderColor: "rgba(124,58,237,0.3)",
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              label: ctx => ` Score: ${ctx.parsed.y}/100`
+            }
+          }
+        }
+      }
+    });
+  })();
+
+  // ── 2. Sub-Scores Multi-line Chart ────────────────────
+  (function buildSubChart() {
+    const ctx = document.getElementById("subScoreChart");
+    if (!ctx) return;
+
+    const makeDataset = (label, data, color) => ({
+      label,
+      data,
+      borderColor: color,
+      backgroundColor: "transparent",
+      borderWidth: 2,
+      pointBackgroundColor: color,
+      pointBorderColor: "#1e1e2e",
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.38,
+    });
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.labels,
+        datasets: [
+          makeDataset("Communication",   data.comm, "#a78bfa"),
+          makeDataset("Technical",       data.tech, "#34d399"),
+          makeDataset("Confidence",      data.conf, "#06b6d4"),
+          makeDataset("Problem Solving", data.prob, "#fbbf24"),
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        animation: { duration: 800, easing: "easeInOutQuart" },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: gridColor },
+            ticks: { color: tickColor, stepSize: 25 },
+            border: { display: false }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: tickColor },
+            border: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(15,23,42,0.9)",
+            titleColor: "#f1f5f9",
+            bodyColor: "#94a3b8",
+            borderColor: "rgba(255,255,255,0.08)",
+            borderWidth: 1,
+            padding: 12,
+          }
+        }
+      }
+    });
+  })();
+
+  // ── 3. Radar Chart (latest session) ──────────────────
+  (function buildRadar() {
+    const ctx = document.getElementById("radarChart");
+    if (!ctx) return;
+
+    const radarGrad = ctx.getContext("2d").createRadialGradient(0,0,0,0,0,200);
+    radarGrad.addColorStop(0,   "rgba(124,58,237,0.35)");
+    radarGrad.addColorStop(1,   "rgba(6,182,212,0.05)");
+
+    new Chart(ctx, {
+      type: "radar",
+      data: {
+        labels: ["Communication", "Technical", "Confidence", "Problem Solving"],
+        datasets: [{
+          label: "Latest Session",
+          data: [data.latest_comm, data.latest_tech, data.latest_conf, data.latest_prob],
+          fill: true,
+          backgroundColor: radarGrad,
+          borderColor: "#7c3aed",
+          borderWidth: 2,
+          pointBackgroundColor: "#a78bfa",
+          pointBorderColor: "#1e1e2e",
+          pointBorderWidth: 2,
+          pointRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 900, easing: "easeInOutQuart" },
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { stepSize: 25, color: tickColor, backdropColor: "transparent" },
+            grid: { color: gridColor },
+            angleLines: { color: "rgba(255,255,255,0.06)" },
+            pointLabels: {
+              color: "#cbd5e1",
+              font: { size: 11, weight: "600" }
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(15,23,42,0.9)",
+            titleColor: "#f1f5f9",
+            bodyColor: "#94a3b8",
+            padding: 12,
+          }
+        }
+      }
+    });
+  })();
+
+  // ── Counter animation for readiness badge ─────────────
+  (function animateCounter() {
+    const el = document.getElementById("readiness-val");
+    if (!el) return;
+    const target = parseInt(el.textContent, 10);
+    let current = 0;
+    const step = Math.max(1, Math.floor(target / 40));
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 25);
+  })();
+});
+</script>
+{% endif %}
+
+{% endblock %}

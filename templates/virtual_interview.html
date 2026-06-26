@@ -2,9 +2,16 @@
 
 {% block content %}
 <div class="interview-container" data-total-slides="{{ questions|length }}">
-    <div class="interview-header">
-        <h2>Voice Interview Prep Lab</h2>
-        <p class="subtitle">Role: <span class="role-highlight">{{ target_role }}</span></p>
+    <div class="interview-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h2>🎥 AI Virtual Interview Room</h2>
+            <p class="subtitle">Role: <span class="role-highlight">{{ target_role }}</span></p>
+        </div>
+    </div>
+
+    <!-- Camera Feed Area -->
+    <div class="camera-container card" style="margin-bottom: 20px; padding: 10px; display: flex; justify-content: center; background: #000;">
+        <video id="camera-feed" autoplay muted playsinline style="width: 100%; max-width: 800px; border-radius: 8px; transform: scaleX(-1);"></video>
     </div>
 
     <!-- Slide Carousel Wrapper -->
@@ -23,11 +30,11 @@
                     <div class="engine-toggle-container" style="display: none;">
                         <span class="toggle-label">ASR Engine:</span>
                         <div class="toggle-switch">
-                            <input type="radio" id="engine-local-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="local" checked>
-                            <label for="engine-local-{{ loop.index0 }}">Web Speech API (Browser)</label>
+                            <input type="radio" id="engine-local-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="local">
+                            <label for="engine-local-{{ loop.index0 }}">Web Speech</label>
                             
-                            <input type="radio" id="engine-whisper-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="whisper">
-                            <label for="engine-whisper-{{ loop.index0 }}">Whisper NIM (Backend)</label>
+                            <input type="radio" id="engine-whisper-{{ loop.index0 }}" name="engine-{{ loop.index0 }}" value="whisper" checked>
+                            <label for="engine-whisper-{{ loop.index0 }}">Whisper</label>
                         </div>
                     </div>
 
@@ -135,8 +142,8 @@
                     <button class="btn btn-nav" onclick="prevSlide()" {% if loop.index0 == 0 %}disabled{% endif %}>
                         &larr; Previous Question
                     </button>
-                    <a href="/interview/reset" class="btn btn-nav btn-secondary" style="padding: 8px 18px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center;">
-                        Reset / New Session
+                    <a href="/virtual_interview/reset" class="btn btn-nav btn-secondary" style="padding: 8px 18px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center;">
+                        Exit Session
                     </a>
                     {% if not loop.last %}
                     <button class="btn btn-nav btn-next-slide" onclick="nextSlide()">
@@ -163,11 +170,23 @@ let mediaRecorder = null;
 let audioChunks = [];
 let audioContext = null;
 let scriptProcessor = null;
-let micStream = null;
+let globalStream = null;
 let isRecording = false;
 
 // Web Speech API configurations
 let speechRecognition = null;
+
+// Start camera on page load
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        globalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const videoElement = document.getElementById('camera-feed');
+        videoElement.srcObject = globalStream;
+    } catch (e) {
+        console.error("Camera access denied", e);
+        alert("Please allow camera and microphone access to use the Virtual Interview Room.");
+    }
+});
 
 function nextSlide() {
     if (currentSlideIndex < totalSlides - 1) {
@@ -189,7 +208,10 @@ function prevSlide() {
 
 function finishInterview() {
     stopAnyRecording();
-    alert("Congratulations on completing your mock interview practice session!");
+    if (globalStream) {
+        globalStream.getTracks().forEach(track => track.stop());
+    }
+    alert("Congratulations on completing your virtual interview practice session!");
     window.location.href = "/interview/report/{{ session_id }}";
 }
 
@@ -205,7 +227,6 @@ function drawWaveform(canvasId, stream) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    // Create AudioContext if not exists
     const actx = new (window.AudioContext || window.webkitAudioContext)();
     const source = actx.createMediaStreamSource(stream);
     const analyser = actx.createAnalyser();
@@ -236,10 +257,9 @@ function drawWaveform(canvasId, stream) {
         for(let i = 0; i < bufferLength; i++) {
             barHeight = dataArray[i] / 2;
             
-            // Create nice neon cyan to magenta gradient
             const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
-            grad.addColorStop(0, '#06b6d4'); // Cyan
-            grad.addColorStop(1, '#ec4899'); // Pink/Magenta
+            grad.addColorStop(0, '#06b6d4');
+            grad.addColorStop(1, '#ec4899');
             
             ctx.fillStyle = grad;
             ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
@@ -261,20 +281,23 @@ async function toggleRecording(index) {
     if (!isRecording) {
         // Start recording
         try {
-            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!globalStream) {
+                globalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('camera-feed').srcObject = globalStream;
+            }
+            
             isRecording = true;
             btn.classList.add('recording');
             statusText.innerText = "Stop Recording";
             resetBtn.style.display = "none";
             
-            // Draw waveform
-            drawWaveform(`canvas-${index}`, micStream);
+            // Draw waveform using the global stream
+            drawWaveform(`canvas-${index}`, globalStream);
             
             if (selectedEngine === 'local') {
-                // Initialize Web Speech API
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
-                    alert("Web Speech API is not supported in this browser. Please use Google Chrome/Microsoft Edge or switch to Whisper NIM.");
+                    alert("Web Speech API is not supported in this browser. Switching to Whisper NIM.");
                     isRecording = false;
                     btn.classList.remove('recording');
                     statusText.innerText = "Start Recording";
@@ -299,9 +322,8 @@ async function toggleRecording(index) {
                 
                 speechRecognition.start();
             } else {
-                // Backend Whisper - Record audio using MediaRecorder
                 audioChunks = [];
-                mediaRecorder = new MediaRecorder(micStream);
+                mediaRecorder = new MediaRecorder(globalStream);
                 mediaRecorder.ondataavailable = (e) => {
                     audioChunks.push(e.data);
                 };
@@ -309,10 +331,10 @@ async function toggleRecording(index) {
             }
         } catch (err) {
             console.error(err);
-            alert("Microphone permission denied or device not found.");
+            alert("Microphone/Camera permission denied or device not found.");
         }
     } else {
-        // Stop recording
+        // Stop recording (but keep camera feed running!)
         isRecording = false;
         btn.classList.remove('recording');
         statusText.innerText = "Start Recording";
@@ -323,11 +345,9 @@ async function toggleRecording(index) {
                 speechRecognition.stop();
             }
         } else {
-            // Whisper NIM backend
-            if (mediaRecorder) {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
                 mediaRecorder.onstop = async () => {
-                    // Send file to API
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const formData = new FormData();
                     formData.append('file', audioBlob, 'recording.webm');
@@ -359,10 +379,7 @@ async function toggleRecording(index) {
             }
         }
         
-        // Stop tracks
-        if (micStream) {
-            micStream.getTracks().forEach(track => track.stop());
-        }
+        // DO NOT stop globalStream tracks here! Keep the video running.
     }
 }
 
@@ -430,7 +447,6 @@ async function submitAnswer(index) {
             document.getElementById(`feedback-prob-${index}`).innerText = probScore + '/100';
             document.getElementById(`feedback-prob-bar-${index}`).style.width = probScore + '%';
             
-            // Adjust ring styling based on score
             const ring = document.getElementById(`feedback-score-ring-${index}`);
             ring.className = "score-ring";
             if (feedback.score >= 75) {
@@ -441,7 +457,6 @@ async function submitAnswer(index) {
                 ring.classList.add('ring-low');
             }
             
-            // Render bullet points
             const strongList = document.getElementById(`feedback-strong-${index}`);
             strongList.innerHTML = '';
             (feedback.strong_points || []).forEach(pt => {
