@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
 from db import Base, engine, SessionLocal, run_migrations
-import PyPDF2
+import pypdf
+import re
 try:
     import docx
 except ImportError:
@@ -12,6 +13,33 @@ import os
 import models
 from ai import analyze_resume
 from scraper import scrape_job_url
+
+# ── Helper for PDF Text Extraction ──────────────────────────────────────────
+def extract_text_from_pdf(file):
+    pdf_reader = pypdf.PdfReader(file)
+    text_list = []
+    for page in pdf_reader.pages:
+        page_text = page.extract_text() or ""
+        text_list.append(page_text)
+    
+    raw_text = "\n".join(text_list)
+    
+    # Fix spacing bugs (e.g. email squished with name: ritikgupta8130@gmail.comRitik)
+    raw_text = re.sub(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})([A-Z])', r'\1 \2', raw_text)
+    
+    known_replacements = {
+        "MarketingPortfolio": "Marketing Portfolio",
+        "MarketingKeyword": "Marketing Keyword",
+        "CopywritingContent": "Copywriting Content",
+        "CMSWordPress": "CMS WordPress",
+        "MarketingSocial": "Marketing Social",
+        "AnalyticsGoogle": "Analytics Google"
+    }
+    for old, new in known_replacements.items():
+        raw_text = raw_text.replace(old, new)
+        
+    return raw_text
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -99,10 +127,7 @@ def dashboard():
         if file and file.filename != "":
             if file.filename.endswith(".pdf"):
                 try:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    resume_text = "".join(
-                        page.extract_text() or "" for page in pdf_reader.pages
-                    )
+                    resume_text = extract_text_from_pdf(file)
                 except Exception as e:
                     analysis = {"error": f"PDF error: {str(e)}"}
 
@@ -238,10 +263,7 @@ def interview():
         if file and file.filename != "":
             if file.filename.endswith(".pdf"):
                 try:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    resume_text = "".join(
-                        page.extract_text() or "" for page in pdf_reader.pages
-                    )
+                    resume_text = extract_text_from_pdf(file)
                 except Exception as e:
                     error = f"PDF read error: {str(e)}"
             else:
@@ -296,10 +318,7 @@ def virtual_interview():
         if file and file.filename != "":
             if file.filename.endswith(".pdf"):
                 try:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    resume_text = "".join(
-                        page.extract_text() or "" for page in pdf_reader.pages
-                    )
+                    resume_text = extract_text_from_pdf(file)
                 except Exception as e:
                     error = f"PDF read error: {str(e)}"
             else:
@@ -643,8 +662,7 @@ def v2_interview_start():
 
     if file and file.filename.endswith(".pdf"):
         try:
-            pdf_reader  = PyPDF2.PdfReader(file)
-            resume_text = "".join(page.extract_text() or "" for page in pdf_reader.pages)
+            resume_text = extract_text_from_pdf(file)
         except Exception as e:
             return {"error": f"PDF parse error: {e}"}, 400
 

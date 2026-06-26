@@ -87,7 +87,7 @@ def run_tests():
     
     html_content = report_resp.data.decode("utf-8")
     assert "Mock Interview Session Feedback" in html_content, "Report page title missing"
-    assert "GPT-5 Interview Synthesis" in html_content, "GPT-5 Summary block missing"
+    assert "AI Interview Synthesis" in html_content, "AI Summary block missing"
     assert "Tailored Development Roadmap" in html_content, "Development Roadmap block missing"
     print("Report HTML page generated and elements verified successfully.")
 
