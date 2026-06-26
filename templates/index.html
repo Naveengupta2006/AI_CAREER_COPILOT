@@ -1,119 +1,455 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="landing-container">
+<style>
+    /* ── Industry-Level Landing Page Overrides ── */
+    :root {
+        --hero-glow: rgba(124, 58, 237, 0.15);
+        --hero-glow-alt: rgba(6, 182, 212, 0.15);
+    }
     
-    <!-- ── Hero Section ── -->
-    <section class="hero-section">
-        <span class="hero-tagline">✨ AI-Powered Career Copilot</span>
-        <h1 class="hero-title">
-            Land Your Dream Job,<br>
-            <span class="text-gradient">Faster Than Ever</span>
+    body {
+        background-color: #030305; /* Deeper black for premium feel */
+        background-image: 
+            radial-gradient(circle at 15% 10%, var(--hero-glow) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, var(--hero-glow-alt) 0%, transparent 40%);
+        overflow-x: hidden;
+    }
+
+    /* Reset main padding for full width hero */
+    main.container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .landing-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ── Hero Section ── */
+    .hero-premium {
+        padding: 120px 0 80px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+
+    .hero-premium::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px),
+                    linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 6px 16px;
+        border-radius: 99px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 32px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    .hero-pill span.new {
+        background: linear-gradient(135deg, var(--violet), var(--cyan));
+        color: white;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .hero-premium h1 {
+        font-size: clamp(48px, 8vw, 84px);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+        color: #ffffff;
+        margin-bottom: 24px;
+        max-width: 900px;
+        animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.1s;
+        opacity: 0;
+    }
+
+    .text-gradient-premium {
+        background: linear-gradient(to right, #fff 20%, var(--violet-lt) 40%, var(--cyan) 60%, #fff 80%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shine 4s linear infinite;
+    }
+
+    @keyframes shine {
+        to { background-position: 200% center; }
+    }
+
+    .hero-premium p {
+        font-size: 20px;
+        color: var(--text-muted);
+        max-width: 640px;
+        line-height: 1.6;
+        margin-bottom: 48px;
+        animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.2s;
+        opacity: 0;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 16px;
+        animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.3s;
+        opacity: 0;
+    }
+
+    .btn-massive {
+        padding: 16px 36px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 99px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-massive-primary {
+        background: #fff;
+        color: #000;
+        box-shadow: 0 0 40px rgba(255,255,255,0.2);
+    }
+
+    .btn-massive-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 60px rgba(255,255,255,0.4);
+    }
+
+    .btn-massive-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-massive-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Mock UI Container */
+    .mock-ui-container {
+        margin-top: 80px;
+        width: 100%;
+        max-width: 1000px;
+        perspective: 1000px;
+        animation: fadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.4s;
+        opacity: 0;
+    }
+
+    .mock-ui {
+        background: rgba(17, 17, 24, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transform: rotateX(10deg) translateY(0);
+        transition: transform 0.5s ease;
+        overflow: hidden;
+    }
+
+    .mock-ui:hover {
+        transform: rotateX(0deg) translateY(-10px);
+    }
+
+    .mock-ui-header {
+        height: 48px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        gap: 8px;
+        background: rgba(0,0,0,0.2);
+    }
+    
+    .mock-dot { width: 12px; height: 12px; border-radius: 50%; background: #333; }
+    .mock-dot.red { background: #ff5f56; }
+    .mock-dot.yellow { background: #ffbd2e; }
+    .mock-dot.green { background: #27c93f; }
+
+    .mock-ui-body {
+        padding: 32px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        opacity: 0.7;
+    }
+
+    .mock-card {
+        height: 120px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px dashed rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 24px;
+        gap: 12px;
+    }
+    
+    .mock-line { height: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 6px; }
+    .mock-line.short { width: 40%; }
+    .mock-line.long { width: 80%; }
+    .mock-line.primary { background: linear-gradient(90deg, var(--violet), transparent); width: 60%; }
+
+    /* ── Bento Grid ── */
+    .bento-section {
+        padding: 120px 0;
+    }
+    
+    .section-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+        font-size: clamp(32px, 5vw, 48px);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin-bottom: 16px;
+    }
+
+    .section-header p {
+        font-size: 18px;
+        color: var(--text-muted);
+    }
+
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 320px;
+        gap: 24px;
+    }
+
+    .bento-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
+        padding: 40px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bento-card:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .bento-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.06), transparent 40%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .bento-card:hover::after { opacity: 1; }
+
+    .bento-large { grid-column: span 2; }
+    .bento-tall { grid-row: span 2; }
+
+    .bento-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 24px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .bento-card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+        color: #fff;
+    }
+
+    .bento-card p {
+        font-size: 15px;
+        color: var(--text-muted);
+        line-height: 1.6;
+    }
+
+    /* Visual flourishes inside bento */
+    .bento-visual {
+        flex: 1;
+        margin-top: 24px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bento-glow-violet { box-shadow: inset 0 0 60px rgba(124, 58, 237, 0.1); }
+    .bento-glow-cyan { box-shadow: inset 0 0 60px rgba(6, 182, 212, 0.1); }
+    .bento-glow-emerald { box-shadow: inset 0 0 60px rgba(16, 185, 129, 0.1); }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+        .bento-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+        .bento-large, .bento-tall { grid-column: span 1; grid-row: span 1; }
+        .hero-premium h1 { font-size: 40px; }
+        .mock-ui-body { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="landing-wrapper">
+    <!-- ── Premium Hero Section ── -->
+    <section class="hero-premium">
+        <div class="hero-pill">
+            <span class="new">New</span> AI Career Copilot 2.0 is live
+        </div>
+        
+        <h1>
+            Engineer your career,<br>
+            <span class="text-gradient-premium">faster than ever.</span>
         </h1>
-        <p class="hero-desc">
-            From scanning to tailoring to interview prep — we've automated the entire job application pipeline.
+        
+        <p>
+            An industry-grade intelligence platform that analyzes job descriptions, instantly optimizes your resume for ATS, and simulates real technical interviews.
         </p>
-        <div class="hero-ctas">
+        
+        <div class="hero-actions">
             {% if user %}
-                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                <a href="/dashboard" class="btn-massive btn-massive-primary">Go to Workspace <span style="font-family: var(--font-mono)">→</span></a>
             {% else %}
-                <a href="/signup" class="btn btn-primary">Get Started — It's Free</a>
-                <a href="/login" class="btn btn-secondary">Log In</a>
+                <a href="/signup" class="btn-massive btn-massive-primary">Deploy Your Resume <span style="font-family: var(--font-mono)">→</span></a>
+                <a href="/login" class="btn-massive btn-massive-secondary">Sign In</a>
             {% endif %}
         </div>
-    </section>
 
-    <!-- ── Features Grid ── -->
-    <section class="landing-section">
-        <span class="landing-section-tagline">Everything You Need</span>
-        <h2 class="landing-section-title">Your Unfair Advantage in the Job Market</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon feature-icon-purple">
-                    <span class="emoji">🔍</span>
+        <!-- Abstract Mock UI -->
+        <div class="mock-ui-container">
+            <div class="mock-ui">
+                <div class="mock-ui-header">
+                    <div class="mock-dot red"></div>
+                    <div class="mock-dot yellow"></div>
+                    <div class="mock-dot green"></div>
                 </div>
-                <h3>Smart Job Scanning</h3>
-                <p>Paste any job URL from LinkedIn, Workday, or Greenhouse — our AI extracts every detail in seconds.</p>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon feature-icon-green">
-                    <span class="emoji">🎯</span>
+                <div class="mock-ui-body">
+                    <div class="mock-card">
+                        <div class="mock-line primary"></div>
+                        <div class="mock-line short"></div>
+                        <div class="mock-line long"></div>
+                    </div>
+                    <div class="mock-card">
+                        <div class="mock-line" style="width: 30%; background: var(--cyan);"></div>
+                        <div class="mock-line long"></div>
+                        <div class="mock-line short"></div>
+                    </div>
                 </div>
-                <h3>ATS Match Scoring</h3>
-                <p>Get an instant score showing how well your resume matches the job. See exactly what's missing.</p>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon feature-icon-orange">
-                    <span class="emoji">📝</span>
-                </div>
-                <h3>One-Click Resume Tailoring</h3>
-                <p>AI rephrases your resume to better match each job description — using only the skills and experience you already have.</p>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon feature-icon-pink">
-                    <span class="emoji">🎓</span>
-                </div>
-                <h3>Interview Prep Lab</h3>
-                <p>Get personalized study topics, company insights, and interview strategies for every application.</p>
             </div>
         </div>
     </section>
 
-    <!-- ── How It Works ── -->
-    <section class="landing-section">
-        <span class="landing-section-tagline">Simple Process</span>
-        <h2 class="landing-section-title">How It Works</h2>
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-num">01</div>
-                <h3>Paste a Job URL</h3>
-                <p>Drop any job link and we handle the rest.</p>
-            </div>
-            
-            <div class="step-card">
-                <div class="step-num">02</div>
-                <h3>Review Your Match</h3>
-                <p>See your ATS score and skill gap analysis.</p>
-            </div>
-            
-            <div class="step-card">
-                <div class="step-num">03</div>
-                <h3>Tailor Your Resume</h3>
-                <p>AI rephrases your resume to better align with the role — in one click.</p>
-            </div>
-            
-            <div class="step-card">
-                <div class="step-num">04</div>
-                <h3>Ace the Interview</h3>
-                <p>Study curated topics and prep intelligence.</p>
-            </div>
+    <!-- ── Bento Grid Features ── -->
+    <section class="bento-section">
+        <div class="section-header">
+            <h2>The ultimate job search infrastructure.</h2>
+            <p>Everything you need to bypass filters and ace the technical screen.</p>
         </div>
-    </section>
 
-    <!-- ── Testimonials ── -->
-    <section class="landing-section">
-        <span class="landing-section-tagline">Loved by Job Seekers</span>
-        <h2 class="landing-section-title">What Our Users Say</h2>
-        <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p class="quote">"Career Copilot took my resume from a 45 to a 97 ATS score. I got 3 interview calls in the first week!"</p>
+        <div class="bento-grid">
+            <!-- Large Card: Smart Job Scanning -->
+            <div class="bento-card bento-large bento-glow-cyan" id="card-1">
+                <div class="bento-icon">🔍</div>
+                <h3>Intelligent Extraction Engine</h3>
+                <p>Paste any URL from Workday, Greenhouse, or LinkedIn. Our LLM pipeline instantly parses the JD, identifies core requirements, and structures the data for analysis.</p>
+                <div class="bento-visual" style="display: flex; align-items: center; justify-content: center;">
+                    <div class="mock-line primary" style="width: 80%;"></div>
+                </div>
             </div>
-            
-            <div class="testimonial-card">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p class="quote">"The interview prep lab is a game-changer. I walked into my interview knowing exactly what to expect."</p>
+
+            <!-- Standard Card: ATS Scoring -->
+            <div class="bento-card bento-glow-emerald" id="card-2">
+                <div class="bento-icon">🎯</div>
+                <h3>Real-time ATS Scoring</h3>
+                <p>Advanced vector matching algorithms compare your resume's semantic structure against the job description to calculate a deterministic ATS pass probability.</p>
             </div>
-            
-            <div class="testimonial-card">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p class="quote">"I used to spend hours tailoring each resume. Now it takes 30 seconds. Worth every credit."</p>
+
+            <!-- Standard Card: Resume Tailoring -->
+            <div class="bento-card bento-glow-violet" id="card-3">
+                <div class="bento-icon">⚡</div>
+                <h3>Zero-Shot Tailoring</h3>
+                <p>Rewrite bullet points instantly. Our engine aligns your existing experience with the target role's terminology without hallucinating skills.</p>
+            </div>
+
+            <!-- Large Card: AI Interview Room -->
+            <div class="bento-card bento-large bento-glow-violet" id="card-4">
+                <div class="bento-icon">🎤</div>
+                <h3>Live AI Interview Simulation</h3>
+                <p>Step into the virtual room. Engage in voice-to-voice technical screening with an AI recruiter trained on the specific job description you are targeting.</p>
+                <div class="bento-visual" style="display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;">
+                     <div style="display: flex; gap: 10px;">
+                         <div style="width: 40px; height: 40px; border-radius: 20px; background: rgba(124,58,237,0.5);"></div>
+                         <div style="flex: 1; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.05);"></div>
+                     </div>
+                </div>
             </div>
         </div>
     </section>
 
 </div>
+
+<script>
+    // Add subtle mouse tracking for bento card glow effects
+    document.querySelectorAll('.bento-card').forEach(card => {
+        card.addEventListener('mousemove', e => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+</script>
 {% endblock %}

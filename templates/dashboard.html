@@ -1,51 +1,273 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<h2>Welcome, {{ user }}!</h2>
-
-<div style="display: flex; gap: 15px; margin-bottom: 30px;">
-    <a href="/interview" class="btn btn-primary" style="font-size: 14px; padding: 12px 24px;">
-        🎙️ Voice Interview Prep
-    </a>
-    <a href="/virtual_interview" class="btn btn-secondary" style="font-size: 14px; padding: 12px 24px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124, 58, 237, 0.1);">
-        🎥 AI Virtual Interview Room
-    </a>
+{% block title %}🏠 Dashboard | AI Career Copilot{% endblock %}
+<div class="dashboard-welcome">
+    <div class="welcome-text">
+        <span class="welcome-greeting">Welcome back,</span>
+        <h2 class="welcome-user">{{ user }}</h2>
+    </div>
 </div>
 
 
-<div class="card">
-    <h3>Resume Upload &amp; Analysis</h3>
+<style>
+    /* ── Dashboard Specific Styles ── */
+    .dashboard-welcome {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .welcome-text { display: flex; flex-direction: column; gap: 4px; }
+    .welcome-greeting { font-size: 14px; font-weight: 600; color: var(--violet-lt); text-transform: uppercase; letter-spacing: 0.05em; }
+    .welcome-user { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin: 0; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .btn-primary-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 99px;
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        background: rgba(124, 58, 237, 0.05);
+        color: var(--violet-lt);
+        transition: all var(--transition);
+        text-decoration: none;
+    }
+    .btn-primary-outline:hover { background: rgba(124, 58, 237, 0.15); border-color: var(--violet); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124, 58, 237, 0.2); }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+        .dashboard-grid { grid-template-columns: 1fr; }
+    }
+    
+    .dashboard-card {
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+    }
+    .card-header .icon {
+        font-size: 24px;
+        background: rgba(124, 58, 237, 0.1);
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .card-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: var(--text);
+    }
+    
+    p.text-muted {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-top: -10px;
+        margin-bottom: 8px;
+    }
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    /* Custom File Upload */
+    .file-upload-box {
+        position: relative;
+        width: 100%;
+    }
+    .file-input {
+        position: absolute;
+        width: 0; height: 0; opacity: 0;
+        overflow: hidden;
+    }
+    .file-upload-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 32px 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition);
+        text-align: center;
+    }
+    .file-upload-label:hover, .file-input:focus + .file-upload-label {
+        background: rgba(124, 58, 237, 0.05);
+        border-color: var(--violet);
+    }
+    .upload-icon { font-size: 28px; }
+    .upload-text { font-size: 14px; font-weight: 500; color: var(--text); }
+    .upload-hint { font-size: 12px; color: var(--text-muted); }
+    
+    /* Divider */
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 12px 0;
+        color: var(--text-hint);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+    }
+    .divider::before, .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--border);
+    }
+    .divider::before { margin-right: 12px; }
+    .divider::after { margin-left: 12px; }
+    
+    /* Form Groups */
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+    .required { color: var(--pink); }
+    
+    .action-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+    .btn-primary-large {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: linear-gradient(135deg, var(--violet), var(--cyan));
+        color: white;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 16px 32px;
+        border: none;
+        border-radius: 99px;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary-large:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(124, 58, 237, 0.5);
+    }
+    
+    /* Add a script to show filename when selected */
+    .file-selected {
+        border-color: var(--emerald) !important;
+        background: rgba(16, 185, 129, 0.05) !important;
+    }
+</style>
 
-        <label>Paste your resume text:
-            <textarea name="resume_text" placeholder="Paste your resume text here..."></textarea>
-        </label>
+<form method="POST" id="analysis-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <div class="dashboard-grid">
+        
+        <!-- Left Column: Resume -->
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <span class="icon">📄</span>
+                <h3>Your Resume</h3>
+            </div>
+            <p class="text-muted">Upload your current resume or paste the text directly.</p>
+            
+            <div class="file-upload-box">
+                <input type="file" name="file" id="file" class="file-input" accept=".pdf,.doc,.docx,.txt" onchange="updateFileName(this)">
+                <label for="file" class="file-upload-label" id="file-label">
+                    <span class="upload-icon">📤</span>
+                    <span class="upload-text" id="file-text">Click to upload PDF or DOCX</span>
+                    <span class="upload-hint">Max file size: 5MB</span>
+                </label>
+            </div>
+            
+            <div class="divider"><span>OR</span></div>
+            
+            <div class="form-group">
+                <label for="resume_text">Paste resume text manually</label>
+                <textarea name="resume_text" id="resume_text" placeholder="If you prefer, paste your raw resume content here..." rows="7"></textarea>
+            </div>
+        </div>
+        
+        <!-- Right Column: Target Job -->
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <span class="icon">🎯</span>
+                <h3>Target Role</h3>
+            </div>
+            <p class="text-muted">Tell us about the specific job you want to land.</p>
+            
+            <div class="form-group">
+                <label for="role">Job Title <span class="required">*</span></label>
+                <input type="text" name="role" id="role" placeholder="e.g. Senior Frontend Engineer" required>
+            </div>
+            
+            <div class="form-group" style="margin-top: 8px;">
+                <label for="job_url">Job Posting URL (Auto-fetch)</label>
+                <input type="url" name="job_url" id="job_url" placeholder="https://company.com/careers/job-id">
+            </div>
+            
+            <div class="divider"><span>OR</span></div>
+            
+            <div class="form-group">
+                <label for="job_description">Paste job description manually</label>
+                <textarea name="job_description" id="job_description" placeholder="Paste the full job posting requirements and details here..." rows="4"></textarea>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="action-bar">
+        <button type="submit" class="btn-primary-large" id="submit-btn" onclick="showLoading()">
+            <span>✨ Analyze Match & Generate Prep</span>
+        </button>
+    </div>
+</form>
 
-        <label>Or upload a file (PDF / DOCX):
-            <input type="file" name="file" accept=".pdf,.doc,.docx,.txt">
-        </label>
-
-        <input
-            type="text"
-            name="role"
-            placeholder="e.g. Backend Engineer, Data Scientist, Product Manager"
-            required
-        >
-
-        <label>Or paste a job posting URL (auto-fetches the description):
-            <input type="url" name="job_url" placeholder="https://company.com/careers/job-id">
-        </label>
-
-        <label>Job description (optional — paste manually instead of a URL):
-            <textarea name="job_description" placeholder="Paste the job posting here..."></textarea>
-        </label>
-
-        <button type="submit">Analyze Resume</button>
-    </form>
-</div>
+<script>
+function updateFileName(input) {
+    const label = document.getElementById('file-label');
+    const text = document.getElementById('file-text');
+    if (input.files && input.files.length > 0) {
+        text.innerText = '✅ ' + input.files[0].name;
+        label.classList.add('file-selected');
+    } else {
+        text.innerText = 'Click to upload PDF or DOCX';
+        label.classList.remove('file-selected');
+    }
+}
+function showLoading() {
+    const form = document.getElementById('analysis-form');
+    if(form.checkValidity()) {
+        const btn = document.getElementById('submit-btn');
+        btn.innerHTML = '<span>⏳ Processing (This takes a moment)...</span>';
+        btn.style.opacity = '0.8';
+        btn.style.pointerEvents = 'none';
+    }
+}
+</script>
 
 {% if analysis %}
 <div class="result-card">
@@ -140,18 +362,7 @@
         {% endfor %}
     </ul>
 
-    <h3 class="section-interview">Interview Questions</h3>
-    <ul class="list-interview">
-        {% for question in analysis.get("interview_questions", []) %}
-        <li>
-            {% if question is mapping %}
-                {{ question.get("question") or question.get("text") or question }}
-            {% else %}
-                {{ question }}
-            {% endif %}
-        </li>
-        {% endfor %}
-    </ul>
+
 
     {% if analysis.get("jd_match") %}
     <h3>Resume vs Job Description Match</h3>

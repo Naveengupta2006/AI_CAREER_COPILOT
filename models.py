@@ -92,6 +92,10 @@ class InterviewAnswer(Base):
     strengths       = Column(Text, nullable=True)          # JSON array stored as text
     weaknesses      = Column(Text, nullable=True)          # JSON array stored as text
     follow_up_asked = Column(Boolean, default=False)
+    comm_score      = Column(Float, nullable=True)         # Communication 0-10
+    tech_score      = Column(Float, nullable=True)         # Technical 0-10
+    conf_score      = Column(Float, nullable=True)         # Confidence 0-10
+    problem_score   = Column(Float, nullable=True)         # Problem Solving 0-10
 
 
 class InterviewReport(Base):
@@ -106,4 +110,5 @@ class InterviewReport(Base):
     weaknesses_summary  = Column(Text, nullable=True)
     roadmap             = Column(Text, nullable=True)   # JSON array of improvement steps
     suggestion          = Column(Text, nullable=True)   # overall coaching advice
+    suggested_answers   = Column(Text, nullable=True)   # JSON array of rewritten weak answers
     created_at          = Column(DateTime, default=datetime.datetime.utcnow)

@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Interview Room — AI Career Copilot</title>
+  <title>🎤 AI Interview Room | AI Career Copilot</title>
+  <!-- Beautiful SVG Favicon to replace the generic browser dots -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -121,13 +123,52 @@
     overflow: hidden;
   }
 
+  /* AI Avatar */
+  .ai-avatar-container {
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ai-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    box-shadow: 0 0 0 0 rgba(124,58,237,0.4);
+    transition: all 0.3s;
+  }
+  .ai-avatar.speaking {
+    animation: avatar-pulse 1.5s infinite;
+  }
+  @keyframes avatar-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(124,58,237,0.6); transform: scale(0.95); }
+    70% { box-shadow: 0 0 0 40px rgba(124,58,237,0); transform: scale(1.05); }
+    100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); transform: scale(0.95); }
+  }
+
   /* Camera */
   .camera-wrap {
-    position: relative;
-    flex-shrink: 0;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 240px;
+    aspect-ratio: 4/3;
     background: #000;
     overflow: hidden;
-    aspect-ratio: 4/3;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+    z-index: 100;
   }
   #camera-video {
     width: 100%;
@@ -496,10 +537,32 @@
   .rs-cell {
     text-align: center;
     background: rgba(0,0,0,0.3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 6px;
+    border: 3px solid var(--border);
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
+  .rs-cell.rs-overall { border-color: var(--violet-lt); box-shadow: 0 0 15px rgba(124,58,237,0.3); }
+  .rs-cell.rs-comm { border-color: var(--violet-lt); box-shadow: 0 0 15px rgba(124,58,237,0.2); }
+  .rs-cell.rs-tech { border-color: var(--emerald); box-shadow: 0 0 15px rgba(16,185,129,0.2); }
+  .rs-cell.rs-conf { border-color: var(--cyan); box-shadow: 0 0 15px rgba(6,182,212,0.2); }
+  .rs-cell.rs-prob { border-color: var(--amber); box-shadow: 0 0 15px rgba(245,158,11,0.2); }
+  
+  .suggested-card {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .suggested-q { font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .suggested-bad { color: var(--text-muted); font-size: 13px; font-style: italic; margin-bottom: 8px; border-left: 2px solid var(--red); padding-left: 10px; }
+  .suggested-good { color: var(--emerald); font-size: 13.5px; border-left: 2px solid var(--emerald); padding-left: 10px; }
   .rs-icon { font-size: 20px; display: block; margin-bottom: 4px; }
   .rs-val { font-size: 20px; font-weight: 800; }
   .rs-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
@@ -589,16 +652,9 @@
   <!-- ── LEFT PANEL ─────────────────────────────────────── -->
   <div class="left-panel">
 
-    <!-- Camera -->
-    <div class="camera-wrap">
-      <video id="camera-video" autoplay muted playsinline></video>
-      <div class="cam-overlay" id="cam-overlay">
-        <span style="font-size:28px">📷</span>
-        <span>Starting camera…</span>
-      </div>
-      <div class="cam-live-badge" id="cam-live">
-        <span class="live-dot"></span> LIVE
-      </div>
+    <!-- AI Avatar -->
+    <div class="ai-avatar-container">
+      <div class="ai-avatar" id="ai-avatar">🤖</div>
     </div>
 
     <!-- Audio level visualizer -->
@@ -716,11 +772,11 @@
     </div>
 
     <div class="report-scores">
-      <div class="rs-cell"><span class="rs-icon">🏆</span><div class="rs-val" id="rpt-overall" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Overall</div></div>
-      <div class="rs-cell"><span class="rs-icon">🗣️</span><div class="rs-val" id="rpt-comm" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Comm</div></div>
-      <div class="rs-cell"><span class="rs-icon">⚙️</span><div class="rs-val" id="rpt-tech" style="color:var(--emerald)">—</div><div class="rs-lbl">Tech</div></div>
-      <div class="rs-cell"><span class="rs-icon">💪</span><div class="rs-val" id="rpt-conf" style="color:var(--cyan)">—</div><div class="rs-lbl">Confidence</div></div>
-      <div class="rs-cell"><span class="rs-icon">🧩</span><div class="rs-val" id="rpt-prob" style="color:var(--amber)">—</div><div class="rs-lbl">Problem</div></div>
+      <div class="rs-cell rs-overall"><span class="rs-icon">🏆</span><div class="rs-val" id="rpt-overall" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Overall</div></div>
+      <div class="rs-cell rs-comm"><span class="rs-icon">🗣️</span><div class="rs-val" id="rpt-comm" style="color:var(--violet-lt)">—</div><div class="rs-lbl">Comm</div></div>
+      <div class="rs-cell rs-tech"><span class="rs-icon">⚙️</span><div class="rs-val" id="rpt-tech" style="color:var(--emerald)">—</div><div class="rs-lbl">Tech</div></div>
+      <div class="rs-cell rs-conf"><span class="rs-icon">💪</span><div class="rs-val" id="rpt-conf" style="color:var(--cyan)">—</div><div class="rs-lbl">Confidence</div></div>
+      <div class="rs-cell rs-prob"><span class="rs-icon">🧩</span><div class="rs-val" id="rpt-prob" style="color:var(--amber)">—</div><div class="rs-lbl">Problem</div></div>
     </div>
 
     <div class="report-section">
@@ -739,11 +795,27 @@
       <h4 style="color:var(--violet-lt)">💡 Coaching Advice</h4>
       <p id="rpt-suggestion">—</p>
     </div>
+    <div class="report-section" id="rpt-suggested-answers-section" style="display:none">
+      <h4 style="color:var(--violet-lt)">💡 Suggested Answers</h4>
+      <div id="rpt-suggested-answers"></div>
+    </div>
 
     <div class="report-actions">
       <a href="/interview/v2" class="rpt-btn-primary">🔄 New Interview</a>
       <a href="/progress" class="rpt-btn-secondary">📈 View Progress</a>
     </div>
+  </div>
+</div>
+
+<!-- ═══ FIXED CAMERA ═════════════════════════════════════════ -->
+<div class="camera-wrap">
+  <video id="camera-video" autoplay muted playsinline></video>
+  <div class="cam-overlay" id="cam-overlay">
+    <span style="font-size:28px">📷</span>
+    <span>Starting camera…</span>
+  </div>
+  <div class="cam-live-badge" id="cam-live">
+    <span class="live-dot"></span> LIVE
   </div>
 </div>
 
@@ -769,6 +841,8 @@ let mediaRecorder = null;
 let audioChunks   = [];
 let recTimerInt   = null;
 let recSeconds    = 0;
+let speechRec     = null;
+let liveTranscript = "";
 
 // Audio analyser for level meter
 let analyserNode  = null;
@@ -810,6 +884,7 @@ function setState(s) {
       hint.textContent = 'Recording will be enabled after the question is spoken';
       ttsInd.classList.remove('hidden');
       $('proc-overlay').classList.remove('visible');
+      if ($('ai-avatar')) $('ai-avatar').classList.add('speaking');
       break;
 
     case S.READY:
@@ -825,6 +900,7 @@ function setState(s) {
       $('proc-overlay').classList.remove('visible');
       $('action-bar').classList.remove('visible');
       $('feedback-strip').classList.remove('visible');
+      if ($('ai-avatar')) $('ai-avatar').classList.remove('speaking');
       break;
 
     case S.RECORDING:
@@ -1064,6 +1140,28 @@ async function startRecording() {
     mediaRecorder.start(100);
     setState(S.RECORDING);
     startTimer();
+
+    // Start Web Speech API for real-time transcription feedback
+    liveTranscript = "";
+    if ('webkitSpeechRecognition' in window) {
+      speechRec = new webkitSpeechRecognition();
+      speechRec.continuous = true;
+      speechRec.interimResults = true;
+      speechRec.onresult = (e) => {
+        let interim = '';
+        let final = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
+        }
+        liveTranscript += final;
+        const body = $('transcript-body');
+        body.classList.remove('empty');
+        $('transcribed-badge').style.display = 'inline-block';
+        body.innerHTML = liveTranscript + '<i style="color:var(--text-muted)">' + interim + '</i>';
+      };
+      speechRec.start();
+    }
   } catch(e) {
     alert('Microphone access denied: ' + e.message);
   }
@@ -1073,6 +1171,10 @@ function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     stopTimer();
     mediaRecorder.stop();
+    if (speechRec) {
+      speechRec.stop();
+      speechRec = null;
+    }
     setState(S.TRANSCRIBING);
   }
 }
@@ -1098,6 +1200,9 @@ async function transcribeAudio(blob) {
 
   const formData = new FormData();
   formData.append('file', blob, 'recording.webm');
+  if (typeof liveTranscript !== 'undefined') {
+    formData.append('live_transcript', liveTranscript);
+  }
 
   try {
     const res  = await fetch('/api/v2/interview/transcribe', { method:'POST', body:formData });
@@ -1198,7 +1303,10 @@ async function handleNext() {
 
     displayQuestion(data.question_text, data.question_type, questionNum);
     setState(S.SPEAKING);
-    speakText(data.question_text, () => setState(S.READY));
+    speakText(data.question_text, () => {
+      setState(S.READY);
+      toggleRecording(); // Auto-start recording
+    });
   } catch(err) {
     alert('Error getting next question: ' + err.message);
     setState(S.REVIEWING);
@@ -1262,6 +1370,22 @@ function showFinalReport(data) {
     $('rpt-suggestion').textContent = data.suggestion;
   }
 
+  // Suggested Answers
+  const sugSec = $('rpt-suggested-answers-section');
+  const sugDiv = $('rpt-suggested-answers');
+  if (data.suggested_answers && data.suggested_answers.length > 0) {
+    sugSec.style.display = 'block';
+    sugDiv.innerHTML = data.suggested_answers.map(sa => `
+      <div class="suggested-card">
+        <div class="suggested-q">Q: ${sa.question}</div>
+        <div class="suggested-bad">Your answer: "${sa.original}"</div>
+        <div class="suggested-good">Suggested: "${sa.suggested}"</div>
+      </div>
+    `).join('');
+  } else {
+    sugSec.style.display = 'none';
+  }
+
   $('report-overlay').classList.add('open');
 }
 
@@ -1299,7 +1423,10 @@ function showFinalReport(data) {
 
   // Small delay so voices load in Chrome
   setTimeout(() => {
-    speakText(ivData.question_text, () => setState(S.READY));
+    speakText(ivData.question_text, () => {
+      setState(S.READY);
+      toggleRecording(); // Auto-start recording
+    });
   }, 300);
 })();
 </script>

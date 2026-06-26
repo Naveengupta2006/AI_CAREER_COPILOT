@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-
+{% block title %}📈 Progress | AI Career Copilot{% endblock %}
 <!-- ═══════════════════════════════════════════════════════════
      Page Styles (scoped)
 ═══════════════════════════════════════════════════════════ -->
@@ -302,11 +302,8 @@
   <span class="empty-icon">🚀</span>
   <h3>No Interview Sessions Yet</h3>
   <p>Complete your first mock interview session and view its report to start tracking your progress here.</p>
-  <a href="/interview" class="btn btn-primary" style="padding: 12px 28px;">
-    🎙️ Start Voice Interview
-  </a>
-  &nbsp;
-  <a href="/virtual_interview" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
+
+  <a href="/interview/v2" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
     🎥 Virtual Interview Room
   </a>
 </div>
@@ -423,25 +420,25 @@
         </td>
         <td>
           <div class="sub-score-bar">
-            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_comm }}%; background:#a78bfa;"></div></div>
+            <div class="bar-track"><div class="bar-fill" {{ ('style="width:' ~ s.avg_comm ~ '%; background:#a78bfa;"')|safe }}></div></div>
             <span>{{ s.avg_comm }}</span>
           </div>
         </td>
         <td>
           <div class="sub-score-bar">
-            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_tech }}%; background:#34d399;"></div></div>
+            <div class="bar-track"><div class="bar-fill" {{ ('style="width:' ~ s.avg_tech ~ '%; background:#34d399;"')|safe }}></div></div>
             <span>{{ s.avg_tech }}</span>
           </div>
         </td>
         <td>
           <div class="sub-score-bar">
-            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_conf }}%; background:#06b6d4;"></div></div>
+            <div class="bar-track"><div class="bar-fill" {{ ('style="width:' ~ s.avg_conf ~ '%; background:#06b6d4;"')|safe }}></div></div>
             <span>{{ s.avg_conf }}</span>
           </div>
         </td>
         <td>
           <div class="sub-score-bar">
-            <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_prob }}%; background:#fbbf24;"></div></div>
+            <div class="bar-track"><div class="bar-fill" {{ ('style="width:' ~ s.avg_prob ~ '%; background:#fbbf24;"')|safe }}></div></div>
             <span>{{ s.avg_prob }}</span>
           </div>
         </td>
@@ -458,10 +455,8 @@
 
 <!-- CTA -->
 <div style="display: flex; gap: 14px; justify-content: center; margin-bottom: 50px; flex-wrap: wrap;">
-  <a href="/interview" class="btn btn-primary" style="padding: 12px 28px;">
-    🎙️ New Voice Session
-  </a>
-  <a href="/virtual_interview" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
+
+  <a href="/interview/v2" class="btn btn-secondary" style="padding: 12px 28px; border: 1px solid var(--violet); color: var(--violet); background: rgba(124,58,237,0.1);">
     🎥 New Virtual Session
   </a>
 </div>

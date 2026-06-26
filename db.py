@@ -28,6 +28,12 @@ def run_migrations():
         ("interview_sessions", "chat_history",   "TEXT"),
         ("interview_sessions", "question_plan",  "TEXT"),
         ("interview_sessions", "current_q_idx",  "INTEGER DEFAULT 0"),
+        # Phase 6 — Final Report
+        ("interview_answers", "comm_score", "FLOAT"),
+        ("interview_answers", "tech_score", "FLOAT"),
+        ("interview_answers", "conf_score", "FLOAT"),
+        ("interview_answers", "problem_score", "FLOAT"),
+        ("interview_reports", "suggested_answers", "TEXT"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in new_columns:

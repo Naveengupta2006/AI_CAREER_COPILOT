@@ -77,19 +77,29 @@ a:hover { opacity: 0.75; }
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 header {
   position: sticky;
-  top: 0;
+  top: 20px;
   z-index: 100;
-  background: rgba(13, 17, 23, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  pointer-events: none; /* Let clicks pass through outside the island */
 }
 
 header .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
+  height: 64px;
+  padding: 0 24px;
+  background: rgba(22, 27, 34, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 99px; /* Floating pill */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  width: 100%;
+  max-width: 900px;
+  pointer-events: auto; /* Re-enable clicks inside the island */
 }
 
 header h1 {
@@ -99,38 +109,69 @@ header h1 {
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 header h1::before {
   content: '';
   display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, var(--violet), var(--pink));
-  box-shadow: 0 0 10px var(--violet-glow);
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  box-shadow: 0 0 12px var(--violet-glow);
+  animation: pulse-glow 3s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from { box-shadow: 0 0 8px var(--violet-glow); }
+  to { box-shadow: 0 0 18px var(--cyan-soft); }
 }
 
 nav ul {
-  list-style: none;
+  list-style: none !important;
+  list-style-type: none !important;
+  margin: 0;
+  padding: 0;
   display: flex;
-  gap: 4px;
+  flex-direction: row !important; /* Force row layout against global ul column layout */
+  align-items: center;
+  gap: 6px;
+}
+
+nav li {
+  list-style: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+nav li::before {
+  content: none !important; /* Force remove any bullets */
 }
 
 nav a {
   color: var(--text-muted);
   font-size: 13.5px;
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: 20px;
-  transition: color var(--transition), background var(--transition);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 99px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
 }
 
 nav a:hover {
-  color: var(--text);
-  background: var(--violet-soft);
-  opacity: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+nav a:active {
+  transform: translateY(1px);
 }
 
 /* ─── Main ───────────────────────────────────────────────────────────────── */

@@ -788,9 +788,10 @@ def interviewer_turn(
       updated_history                                                    (new chat_history with answer + Q appended)
     """
     # Determine which plan entry drives the NEXT question
-    # If this was a follow-up, stay on the same plan entry
-    advance   = not is_follow_up
-    next_idx  = (current_q_idx + 1) if advance else current_q_idx
+    # If this was a follow-up, we MUST advance to the next plan entry
+    advance_to_next = is_follow_up
+    next_idx = (current_q_idx + 1) if advance_to_next else current_q_idx
+
     if next_idx < len(question_plan):
         next_type  = question_plan[next_idx].get("type",       "technical")
         next_topic = question_plan[next_idx].get("topic_hint", "")
@@ -802,6 +803,14 @@ def interviewer_turn(
     history_with_answer = chat_history + [
         {"role": "user", "content": answer_text}
     ]
+
+    # Adjust follow-up instructions based on whether we are already in a follow-up
+    if is_follow_up:
+        follow_up_rule = "You CANNOT ask another follow-up. follow_up_needed MUST be false. Generate the next planned question."
+    else:
+        follow_up_rule = """- Compute: overall = (comm + tech + conf + problem) / 4
+  - If overall < 6.0 → follow_up_needed = true, write a targeted follow-up probing the weak area
+  - If overall ≥ 6.0 → follow_up_needed = false, generate the next planned question"""
 
     # Ephemeral evaluation prompt — appended as the last user turn,
     # NOT persisted in the stored chat_history
@@ -816,9 +825,7 @@ SCORING (0.0–10.0 per dimension; 10 = exceptional, 5 = average):
   - problem_score: logical reasoning, structured approach
 
 FOLLOW-UP RULE (mandatory):
-  - Compute: overall = (comm + tech + conf + problem) / 4
-  - If overall < 6.0 → follow_up_needed = true, write a targeted follow-up probing the weak area
-  - If overall ≥ 6.0 → follow_up_needed = false, generate the next planned question
+  {follow_up_rule}
 
 NEXT QUESTION (if NOT follow-up):
   type  : {next_type}
@@ -837,8 +844,7 @@ Return ONLY valid JSON — no markdown, no extra text:
   "follow_up_reason": "",
   "next_question":    "Full question text here?",
   "next_question_type": "{next_type}"
-}}
-"""
+}}"""
 
     messages_to_send = history_with_answer + [
         {"role": "user", "content": eval_prompt}
@@ -862,9 +868,15 @@ Return ONLY valid JSON — no markdown, no extra text:
                    parsed["conf_score"] + parsed["problem_score"]) / 4
             parsed["overall_score"] = round(avg, 2)
 
-            # Hard-enforce the score < 6 follow-up rule
-            if avg < 6.0:
-                parsed["follow_up_needed"] = True
+            if is_follow_up:
+                parsed["follow_up_needed"] = False
+            else:
+                # Hard-enforce the score < 6 follow-up rule
+                if avg < 6.0:
+                    parsed["follow_up_needed"] = True
+            
+            if parsed.get("follow_up_needed"):
+                parsed["next_question_type"] = "follow_up"
 
             # Build persistent history: answer + AI next question
             next_q_text = parsed["next_question"]
@@ -872,7 +884,7 @@ Return ONLY valid JSON — no markdown, no extra text:
                 {"role": "assistant", "content": next_q_text}
             ]
             parsed["updated_history"] = updated_history
-            parsed["advance_idx"]     = (not parsed["follow_up_needed"]) and advance
+            parsed["advance_idx"]     = not parsed["follow_up_needed"]
 
             return parsed
 
@@ -891,6 +903,114 @@ Return ONLY valid JSON — no markdown, no extra text:
         "follow_up_reason": "",
         "next_question":     fallback_q,
         "next_question_type": next_type,
-        "advance_idx":       advance,
+        "advance_idx":       True if is_follow_up else False,
         "updated_history":   fallback_hist,
+    }
+
+def generate_final_report_phase2(session_answers, role):
+    if not session_answers:
+        return {
+            "overall_score": 0, "comm_score": 0, "tech_score": 0,
+            "conf_score": 0, "problem_score": 0, "hiring_recommendation": "Needs More Practice",
+            "strengths_summary": "N/A", "weaknesses_summary": "N/A", "roadmap": [],
+            "suggestion": "No answers provided.", "suggested_answers": []
+        }
+
+    valid_answers = [a for a in session_answers if a.get("comm_score") is not None]
+    if not valid_answers:
+        avg_overall = sum(a.get("overall_score", 0) for a in session_answers) / len(session_answers)
+        overall_scaled = min(100, max(0, int(avg_overall * 10)))
+        return {
+            "overall_score": overall_scaled, "comm_score": overall_scaled, "tech_score": overall_scaled,
+            "conf_score": overall_scaled, "problem_score": overall_scaled, 
+            "hiring_recommendation": "Needs More Practice",
+            "strengths_summary": "", "weaknesses_summary": "", "roadmap": [],
+            "suggestion": "", "suggested_answers": []
+        }
+
+    num = len(valid_answers)
+    avg_comm = sum(a["comm_score"] for a in valid_answers) / num
+    avg_tech = sum(a["tech_score"] for a in valid_answers) / num
+    avg_conf = sum(a["conf_score"] for a in valid_answers) / num
+    avg_prob = sum(a["problem_score"] for a in valid_answers) / num
+    avg_overall = (avg_comm + avg_tech + avg_conf + avg_prob) / 4
+
+    overall_100 = int(round(avg_overall * 10))
+    comm_100    = int(round(avg_comm * 10))
+    tech_100    = int(round(avg_tech * 10))
+    conf_100    = int(round(avg_conf * 10))
+    prob_100    = int(round(avg_prob * 10))
+
+    if overall_100 >= 85:
+        recommendation = "Ready for Full-Time"
+    elif overall_100 >= 70:
+        recommendation = "Ready for Internship"
+    else:
+        recommendation = "Needs More Practice"
+
+    context_lines = []
+    for i, a in enumerate(valid_answers):
+        context_lines.append(f"Q{i+1}: {a['question_text']}")
+        context_lines.append(f"Answer: {a['answer_text']}")
+        context_lines.append(f"AI Strengths: {', '.join(a.get('strengths', []))}")
+        context_lines.append(f"AI Weaknesses: {', '.join(a.get('weaknesses', []))}")
+        context_lines.append("---")
+    
+    context_text = "\n".join(context_lines)
+
+    prompt = f"""[FINAL INTERVIEW REPORT — JSON ONLY]
+Role: {role}
+Candidate Overall Score: {overall_100}/100
+
+Here are the questions, answers, and AI feedback from the session:
+{context_text}
+
+Analyze the session as an expert technical interviewer.
+Generate the following:
+1. 'strengths_summary': a short prose summary of their top 3 strengths across the interview.
+2. 'weaknesses_summary': a short prose summary of their top 3 weaknesses/areas to improve.
+3. 'roadmap': a list of 3-5 actionable study items for their next interview.
+4. 'suggestion': a 1-sentence overall coaching advice.
+5. 'suggested_answers': An array of objects. Find 1 or 2 of their weakest answers. For each, rewrite a significantly better, structured answer.
+   Format: [{{"question": "...", "original": "...", "suggested": "..."}}]
+
+Return ONLY valid JSON.
+{{
+  "strengths_summary": "...",
+  "weaknesses_summary": "...",
+  "roadmap": ["...", "..."],
+  "suggestion": "...",
+  "suggested_answers": [
+    {{
+      "question": "...",
+      "original": "...",
+      "suggested": "..."
+    }}
+  ]
+}}
+"""
+    try:
+        resp = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=1000,
+        )
+        parsed = extract_and_parse_json(resp.choices[0].message.content) or {}
+    except Exception as e:
+        logging.error(f"Error generating final report: {e}")
+        parsed = {}
+
+    return {
+        "overall_score": overall_100,
+        "comm_score": comm_100,
+        "tech_score": tech_100,
+        "conf_score": conf_100,
+        "problem_score": prob_100,
+        "hiring_recommendation": recommendation,
+        "strengths_summary": parsed.get("strengths_summary", "No strengths generated."),
+        "weaknesses_summary": parsed.get("weaknesses_summary", "No weaknesses generated."),
+        "roadmap": parsed.get("roadmap", []),
+        "suggestion": parsed.get("suggestion", "Keep practicing!"),
+        "suggested_answers": parsed.get("suggested_answers", [])
     }

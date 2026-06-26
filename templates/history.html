@@ -45,7 +45,7 @@
         {% else %}
             <div class="card" style="text-align: center; padding: 40px;">
                 <p style="color: var(--text-muted); margin-bottom: 15px;">No mock interview session reports found.</p>
-                <a href="/interview" class="btn btn-primary" style="font-size: 13.5px; padding: 8px 20px;">Start Mock Interview Lab</a>
+                <a href="/interview/v2" class="btn btn-primary" style="font-size: 13.5px; padding: 8px 20px;">Start AI Room</a>
             </div>
         {% endif %}
     </div>
@@ -116,18 +116,7 @@
                     {% endfor %}
                 </ul>
 
-                <h3 class="section-interview">Interview Questions</h3>
-                <ul class="list-interview">
-                    {% for question in r.analysis.get("interview_questions", []) %}
-                    <li>
-                        {% if question is mapping %}
-                            {{ question.get("question") or question.get("text") or question }}
-                        {% else %}
-                            {{ question }}
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
+
             </div>
             {% endfor %}
 

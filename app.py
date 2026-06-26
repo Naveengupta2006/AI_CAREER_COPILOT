@@ -766,6 +766,7 @@ def v2_interview_transcribe():
     temp_path = os.path.join(temp_dir, f"v2_{safe_name}.webm")
     audio_file.save(temp_path)
 
+    live_transcript = request.form.get("live_transcript", "").strip()
     transcript = ""
     error      = None
 
@@ -779,14 +780,13 @@ def v2_interview_transcribe():
             )
         transcript = resp.text
     except Exception as e1:
-        try:
-            import speech_recognition as sr
-            recognizer = sr.Recognizer()
-            with sr.AudioFile(temp_path) as src:
-                audio_data = recognizer.record(src)
-            transcript = recognizer.recognize_google(audio_data)
-        except Exception as e2:
-            error = f"Whisper: {e1} | Fallback: {e2}"
+        if live_transcript:
+            transcript = live_transcript
+        else:
+            # If both Whisper and live_transcript fail, provide a placeholder text
+            # so the interview proceeds and the LLM can handle it gracefully.
+            transcript = "[No audio detected or transcription failed]"
+            error = None
 
     try:
         os.remove(temp_path)
@@ -859,6 +859,11 @@ def v2_interview_evaluate():
         answer_row.strengths       = json.dumps(result.get("strengths", []))
         answer_row.weaknesses      = json.dumps(result.get("weaknesses", []))
         answer_row.follow_up_asked = bool(result.get("follow_up_needed", False))
+        
+        answer_row.comm_score      = result.get("comm_score")
+        answer_row.tech_score      = result.get("tech_score")
+        answer_row.conf_score      = result.get("conf_score")
+        answer_row.problem_score   = result.get("problem_score")
         db.commit()
 
         return {
@@ -1030,10 +1035,10 @@ def v2_interview_finish():
                 "question_text": a.question_text,
                 "question_type": a.question_type,
                 "answer_text":   a.answer_text,
-                "comm_score":    None,          # not stored per-answer in Phase 2 schema
-                "tech_score":    None,          # scores are stored as single overall score
-                "conf_score":    None,
-                "problem_score": None,
+                "comm_score":    a.comm_score,
+                "tech_score":    a.tech_score,
+                "conf_score":    a.conf_score,
+                "problem_score": a.problem_score,
                 "overall_score": a.score,       # 0-10
                 "strengths":     json.loads(a.strengths)   if a.strengths  else [],
                 "weaknesses":    json.loads(a.weaknesses)  if a.weaknesses else [],
@@ -1057,6 +1062,7 @@ def v2_interview_finish():
             existing_report.weaknesses_summary = report["weaknesses_summary"]
             existing_report.roadmap            = json.dumps(report["roadmap"])
             existing_report.suggestion         = report["suggestion"]
+            existing_report.suggested_answers  = json.dumps(report.get("suggested_answers", []))
         else:
             new_report = models.InterviewReport(
                 session_id=session_id,
@@ -1064,6 +1070,7 @@ def v2_interview_finish():
                 weaknesses_summary=report["weaknesses_summary"],
                 roadmap=json.dumps(report["roadmap"]),
                 suggestion=report["suggestion"],
+                suggested_answers=json.dumps(report.get("suggested_answers", [])),
             )
             db.add(new_report)
 
@@ -1082,6 +1089,7 @@ def v2_interview_finish():
             "weaknesses_summary":    report["weaknesses_summary"],
             "roadmap":               report["roadmap"],
             "suggestion":            report["suggestion"],
+            "suggested_answers":     report.get("suggested_answers", []),
             "total_questions":       len(answers_db),
         }
 

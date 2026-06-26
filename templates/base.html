@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Career Copilot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}AI Career Copilot{% endblock %}</title>
+    <!-- Beautiful SVG Favicon to replace the generic browser dots -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2.0">
 </head>
 <body>
     <header>
@@ -16,9 +18,8 @@
                         <li><a href="/history">History</a></li>
                         <li><a href="/progress">Progress</a></li>
                         <li><a href="/dashboard">Dashboard</a></li>
-                        <li><a href="/interview">Voice Interview</a></li>
                         <li><a href="/interview/v2">🎤 AI Room</a></li>
-                        <li><a href="/logout">Logout</a></li>
+                        <li><a href="/logout" style="color: var(--pink);">Logout</a></li>
                     {% else %}
                         <li><a href="/login">Login</a></li>
                         <li><a href="/signup">Sign Up</a></li>
