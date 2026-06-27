@@ -21,21 +21,6 @@ An AI-powered career assistant that analyzes your resume, scores it against ATS 
 **Homepage**
 ![Homepage Preview](assets/preview.png)
 
-**Dashboard**
-![Dashboard](assets/dashboard.png)
-
-**Interview History**
-![History](assets/history.png)
-
-**Progress Tracking**
-![Progress](assets/progress.png)
-
-**AI Interview Room Setup**
-![Interview Setup](assets/interview_setup.png)
-
-**Live AI Interview Room**
-![AI Room Interview](assets/ai_room.png)
-
 ## 🛠️ Tech Stack
 
 **Backend**
