@@ -19,8 +19,8 @@ An AI-powered career assistant that analyzes your resume, scores it against ATS 
 ## 🖥️ Screenshots
 
 ![Dashboard Preview](assets/preview.png)
-
-*(You can add the other screenshots you shared to an `assets/` or `screenshots/` folder and link them here)*
+![AI Room Interview](assets/ai_room.png)
+![Interview Setup](assets/interview_setup.png)
 
 ## 🛠️ Tech Stack
 
@@ -178,5 +178,5 @@ MIT License — free to use, modify, and distribute.
 ## 👤 Author
 Built by **Naveen Gupta**
 
-GitHub: [https://github.com/Naveengupta2006](https://github.com/your-username)
+GitHub: [@Naveengupta2006](https://github.com/Naveengupta2006)
 LinkedIn: [https://www.linkedin.com/in/naveen-gupta-55a491346/](https://www.linkedin.com/in/naveen-gupta-55a491346/)
