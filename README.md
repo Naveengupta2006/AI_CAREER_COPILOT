@@ -31,7 +31,7 @@ An AI-powered career assistant that analyzes your resume, scores it against ATS 
 * Werkzeug (password hashing)
 
 **Database**
-* MySQL 8.0
+* PostgreSQL
 
 **AI**
 * OpenAI-compatible API (NVIDIA NIM / GPT-4o-mini)
